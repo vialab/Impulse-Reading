@@ -1,0 +1,10 @@
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\Tobii.EyeX.Client.dll
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\TobiiElectronServer.exe.config
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\TobiiElectronServer.exe
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\TobiiElectronServer.pdb
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\Tobii.Interaction.Model.dll
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\Debug\Tobii.Interaction.Net.dll
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\Debug\TobiiElectronServer.csprojResolveAssemblyReference.cache
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\Debug\TobiiElectronServer.csproj.CoreCompileInputs.cache
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\Debug\TobiiElectronServer.exe
+C:\Users\Felix\Documents\GitHub\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\Debug\TobiiElectronServer.pdb

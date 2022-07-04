@@ -1,0 +1,23 @@
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\Tobii.EyeX.Client.dll
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.exe.config
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.exe
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.pdb
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\Tobii.Interaction.Model.dll
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\bin\x64\Release\Tobii.Interaction.Net.dll
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csprojAssemblyReference.cache
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.CoreCompileInputs.cache
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.CopyComplete
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.exe
+C:\Users\moeah\Desktop\tobii-electron-streaming-master\TobiiElectronServer\TobiiElectronServer\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.pdb
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\Tobii.EyeX.Client.dll
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.exe.config
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.exe
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\TobiiElectronServer.pdb
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\Tobii.Interaction.Model.dll
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\bin\x64\Release\Tobii.Interaction.Net.dll
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.AssemblyReference.cache
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.SuggestedBindingRedirects.cache
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.CoreCompileInputs.cache
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.csproj.CopyComplete
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.exe
+C:\Users\adeli\Desktop\Tobii-Electron-Starter-main\Tobii Server\src\TobiiElectronServer\obj\x64\Release\TobiiElectronServer.pdb
