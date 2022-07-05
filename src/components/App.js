@@ -242,29 +242,24 @@ export default class App extends Component {
   updateDetectors(transitionType) {
     //TODO: implement scanning detector.
 
-    // For each type, update the reading score, skimming score, scanning score, and line delimiter status.
+    // For each type, update the reading score, skimming score, and scanning score.
     switch(transitionType) {
-      case READ_FORWARD: return this.changeDetectorScores(10, 5, 0, false);
-      case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0, false);
-      case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 0, false);
-      case SHORT_REGRESSION: return this.changeDetectorScores(-8, -8, 0, false);
-      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, 0, false);
-      case RESET_JUMP: return this.changeDetectorScores(5, 5, 0, true);
-      case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 0, true);
+      case READ_FORWARD: return this.changeDetectorScores(10, 5, 0);
+      case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0);
+      case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 0);
+      case SHORT_REGRESSION: return this.changeDetectorScores(-8, -8, 0);
+      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, 0);
+      case RESET_JUMP: return this.changeDetectorScores(5, 5, 0);
+      case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 0);
     }
 
   }
 
-  changeDetectorScores(readChange, skimChange, scanChange, lineDelimiter) {
+  changeDetectorScores(readChange, skimChange, scanChange) {
     readingScore+=readChange;
     skimmingScore+=skimChange;
     scanningScore+=scanChange;
     console.log(" reading: " + readingScore + "skimming: " + skimmingScore);
-
-    if (lineDelimiter) {
-      //TODO: update this from the paper's algorithm to instead not fully reset on line change
-      ;
-    }
 
     // TODO: implement scanning. Also geez refactor this to abstract it away from doing each comparison directly
     // e.g. "if highest.mode != currentMode: ""
