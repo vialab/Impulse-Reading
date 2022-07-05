@@ -8,3 +8,6 @@ This was a giant red herring, and using a dependency analyzer I found the issue 
 visual C++ redistributable installed. (Note that you need to install BOTH the x86 and x64 versions if you're on a 64-bit machine.)
 As far as I can tell I'm the only one that ever hit this issue because it's very difficult to actually not have the C++ redistributable
 installed for you in the course of using a machine, but because this computer has barely ever been used it hadn't happened yet.
+
+-You need to install Tobii Experience to use the eyetracker. Usually this should happen automatically but sometimes it doesn't.
+I followed these directions and it worked fine: https://help.tobii.com/hc/en-us/articles/360009929118-Get-the-Tobii-Experience-app
