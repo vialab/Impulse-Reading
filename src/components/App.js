@@ -8,7 +8,6 @@ var cursor = '';
 
 var delayedTransition = null;
 
-// TODO: consider whether we want to do this more functionally
 var currentFixation = null;
 var lastFixation = null;
 var readingScore = 0;
@@ -61,9 +60,8 @@ export default class App extends Component {
   }
 
   componentDidMount(){
-    //exampleFunc();
-
-
+    // Note that the main loop currently only runs when we receive a new gaze position.
+    // This has the downside that we don't execute code while the user isn't looking at the screen.
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
     });
@@ -283,8 +281,6 @@ export default class App extends Component {
   }
 
   changeMode(newHighest) {
-    // Check for collision between eye gaze cursor and items
-
     let element = document.getElementById("square");
     let text = document.getElementById("text");
 
@@ -320,61 +316,6 @@ export default class App extends Component {
         </div>
       </div>
     );
-  }
-
-  //TODO: delete me
-  exampleFunc() {
-    // Receive gaze-pos message from backend
-    ipcRenderer.on('gaze-pos', (event, arg) => {
-
-      if (this.state.gazeCursorEnabled) {
-        if (cursor === '') {
-          cursor = document.getElementById("gazeCursor");
-        }
-        cursor.style.visibility = "visible";
-        gazePosition.x = arg.x;
-        gazePosition.y = arg.y;
-
-        // Update gaze cursor position
-        cursor.style.left = gazePosition.x + "px";
-        cursor.style.top = gazePosition.y + "px";
-
-        // Check collisions
-        this.checkCollision();
-      }
-      else {
-        cursor = document.getElementById("gazeCursor");
-        cursor.style.visibility = "hidden";
-      }
-
-    });
-  }
-
-  //TODO: delete me
-   checkCollision() {
-    // Check for collision between eye gaze cursor and items
-    let cursor = document.getElementById("gazeCursor");
-    let cursorCoord = cursor.getBoundingClientRect();
-    let element = document.getElementById("square");
-    let elementCoord = element.getBoundingClientRect();
-    let text = document.getElementById("text");
-
-    if (cursorCoord.left < elementCoord.left + elementCoord.width && cursorCoord.left + cursorCoord.width > elementCoord.left &&
-      cursorCoord.top < elementCoord.top + elementCoord.height && cursorCoord.top + cursorCoord.height > elementCoord.top) {
-        // Collision detected
-        element.style.backgroundColor = "coral";
-        text.textContent = "Gaze detected";
-
-        if(Math.floor(Math.random() * 10) < 5) {
-          text.textContent = "Esports!";
-        }
-        
-    }
-    else {
-      element.style.backgroundColor = "skyblue";
-      text.textContent = "Look at me!";
-    }
-
   }
 
 }
