@@ -42,7 +42,12 @@ var WINDOW_SIZE = 3;
 
 var NEW_FIXATION_PX = 30;
 var CURRENT_FIXATION_PX = 50;
-var CHARACTER_WIDTH = 17; //TODO
+
+// Hardcoded constants. This is beneficial during development to allow me to check the algorithm on text from external programs.
+// However, in an ideal world finished product we would use some sort of OCR to change these constants.
+// These are currently set to what feels roughly correct to me for small wikipedia text.
+// THese should DEFINITELY be changed over the course of some user tests / pilot studies before being deployed.
+var CHARACTER_WIDTH = 12; //TODO
 var LINE_HEIGHT = 15; //TODO
 
 export default class App extends Component {
