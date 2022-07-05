@@ -78,11 +78,13 @@ export default class App extends Component {
       // Based on our transition, update our detectors.
       // TODO: refactor this to allow for a delayed transition / "cooldown period".
       const newHighest = this.updateDetectors(transitionType);
-      console.log("new fixation, type: " + transitionType);
+
+      const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
+      const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
+      console.log("new fixation, transition type: " + transitionType + ". diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
       // If our detector updates led to a new highest candidate, transition to a new mode.
       if (newHighest) {
         this.changeMode(newHighest);
-        console.log("update mode");
       }
     }
 
@@ -113,11 +115,9 @@ export default class App extends Component {
       pointsWindow.pop();
     }
     pointsWindow.unshift({x: x, y: y});
-    //console.log("pointsWindow: " + pointsWindow.length + " and tostring: " + pointsWindow.toString());
   }
 
   checkNewFixation() {
-    console.log("checking new");
     const maxX = Math.max(...pointsWindow.map(point => point.x));
     const minX = Math.min(...pointsWindow.map(point => point.x));
     const maxY = Math.max(...pointsWindow.map(point => point.y));
@@ -185,7 +185,6 @@ export default class App extends Component {
 
   // Returns the updated values of the current fixation if this point is okay, and null if this point isn't okay.
   checkPoint(x, y) {
-    //console.log("checking points x " + x + " y: " + y + "current fixation: x" + currentFixation.maxX + "y: " + currentFixation.maxY);
     var val = {
       candidateMaxX: Math.max(currentFixation.maxX, x),
       candidateMinX: Math.min(currentFixation.minX, x),
@@ -264,22 +263,17 @@ export default class App extends Component {
     // TODO: implement scanning. Also geez refactor this to abstract it away from doing each comparison directly
     // e.g. "if highest.mode != currentMode: ""
     if (currentMode == READING || !currentMode) {
-      console.log("checking reading");
       if (skimmingScore > readingScore) {
-        console.log("switching to skimming!");
         currentMode = SKIMMING;
         return currentMode;
       }
     }
     else if (currentMode == SKIMMING) {
-      console.log("checking skimming");
       if (readingScore > skimmingScore) {
-        console.log("switching to reading!");
         currentMode = READING;
         return currentMode;
       }
     }
-    console.log("returning null");
     return null;
   }
 
