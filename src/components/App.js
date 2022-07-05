@@ -32,7 +32,14 @@ var READING = "READING";
 var SKIMMING = "SKIMMING";
 var SCANNING = "SCANNING";
 
-var WINDOW_SIZE = 4;
+// The window size required to make a fixation. The Tobii 5 has a sample rate of 33hz, meaning that a window of 3 points
+// is approximately (1/33)*3 = 0.091 seconds, or 91 ms. Fixations usually last 200+ ms, so this SHOULD be enough to reliably
+// detect fixations. However, we can still miss fixations if an outlier happens in the middle of the fixation.
+// If this code is adapted to an eye tracker with a different sample rate, this window should be adjusted such that the formula:
+// (1/SAMPLE_RATE)*WINDOW_SIZE
+// equals... something less than 100 ms, and probably more than 30 ms or so, but that's just based on a gut feeling.
+var WINDOW_SIZE = 3;
+
 var NEW_FIXATION_PX = 30;
 var CURRENT_FIXATION_PX = 50;
 var CHARACTER_WIDTH = 17; //TODO
@@ -50,6 +57,7 @@ export default class App extends Component {
 
   componentDidMount(){
     //exampleFunc();
+
 
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
