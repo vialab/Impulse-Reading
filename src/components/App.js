@@ -71,6 +71,7 @@ export default class App extends Component {
     
     //Constant exponential falloff of all detector scores.
     this.decayDetectors();
+
     // Check current gaze location to see if it corresponds to a new fixation, and delete the current fixation if it's ended.
     const newFixation = this.checkFixation(x, y);
  
@@ -212,6 +213,8 @@ export default class App extends Component {
     }
 
     else {
+      // TODO: When implementing the scanning detector, we'll need to add more logic for vertical jumps.
+      // Currently these assume any horizontal movement is associated with reading or skimming, even if it's also heavily vertical.
       const characterSpaces = changeX / CHARACTER_WIDTH;
       const lineSpaces = changeY / LINE_HEIGHT;
 
@@ -268,12 +271,18 @@ export default class App extends Component {
     if (currentMode == READING || !currentMode) {
       if (skimmingScore > readingScore) {
         currentMode = SKIMMING;
+
+        // Make thrashing between different modes less likely; when we switch to a mode, temporarily boost its score.
+        // We use a multiplicative score instead of an additive one so the momentum boost is less impactful
+        // when the user is just starting out, and more impactful when they've been reading for at least a few seconds.
+        skimmingScore *= 1.2;
         return currentMode;
       }
     }
     else if (currentMode == SKIMMING) {
       if (readingScore > skimmingScore) {
         currentMode = READING;
+        readingScore *= 1.2;
         return currentMode;
       }
     }
