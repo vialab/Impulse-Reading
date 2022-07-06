@@ -135,6 +135,8 @@ export default class App extends Component {
 
       // Calculate changeX and changeY
       if (lastFixation) {
+        // There isn't a "true" center pixel for our fixation, but instead a sliding window based on which points have been sampled.
+        // Estimate the middle of this fixation by taking the middle of the max and min for both x and y.
         currentFixation.changeX = this.average(maxX, minX) - this.average(lastFixation.maxX, lastFixation.minX);
         currentFixation.changeY = this.average(maxY, minY) - this.average(lastFixation.maxY, lastFixation.minY);
       }
@@ -273,7 +275,8 @@ export default class App extends Component {
         currentMode = SKIMMING;
 
         // Make thrashing between different modes less likely; when we switch to a mode, temporarily boost its score.
-        // We use a multiplicative score instead of an additive one so the momentum boost is less impactful
+        // We use a multiplicative score instead of an additive one so the momentum boost is less impactfu
+        l
         // when the user is just starting out, and more impactful when they've been reading for at least a few seconds.
         skimmingScore *= 1.2;
         return currentMode;
