@@ -275,8 +275,7 @@ export default class App extends Component {
         currentMode = SKIMMING;
 
         // Make thrashing between different modes less likely; when we switch to a mode, temporarily boost its score.
-        // We use a multiplicative score instead of an additive one so the momentum boost is less impactfu
-        l
+        // We use a multiplicative score instead of an additive one so the momentum boost is less impactful
         // when the user is just starting out, and more impactful when they've been reading for at least a few seconds.
         skimmingScore *= 1.2;
         return currentMode;
