@@ -46,7 +46,7 @@ var CURRENT_FIXATION_PX = 50;
 // However, in an ideal world finished product we would use some sort of OCR to change these constants.
 // These are currently set to what feels roughly correct to me for small wikipedia text.
 // THese should DEFINITELY be changed over the course of some user tests / pilot studies before being deployed.
-var CHARACTER_WIDTH = 12; //TODO
+var CHARACTER_WIDTH = 13; //TODO
 var LINE_HEIGHT = 15; //TODO
 
 export default class App extends Component {
@@ -62,6 +62,25 @@ export default class App extends Component {
   componentDidMount(){
     // Note that the main loop currently only runs when we receive a new gaze position.
     // This has the downside that we don't execute code while the user isn't looking at the screen.
+
+    //const fs = require('fs');
+    // cwd: C:\Users\adeli\Desktop\Tobii-Electron-Starter-main
+/*
+    console.log("cwd: " + process.cwd());
+    console.log("dir " + __dirname);
+
+    const fs = require("fs");
+
+    fs.readFile('testroot.txt', function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        let text = document.getElementById("text2");
+        text.textContent = data.toString();
+      }
+    });
+*/
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
     });
@@ -323,6 +342,9 @@ export default class App extends Component {
         <div className='container'>
           <div id='square'>
             <p id="text">Look at me!</p>
+          </div>
+          <div id='square2'>
+            <p id="text2">Look at me!</p>
           </div>
         </div>
       </div>
