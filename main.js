@@ -30,9 +30,11 @@ if (process.platform === 'win32') {
 
 function createWindow() {
   // Create the browser window.
+  // Width/height are ignored for fullscreen, but are set to make switching between fullscreen a one-line change.
   mainWindow = new BrowserWindow({
     width: 1024,
     height: 768,
+    fullscreen: false,
     show: false,
     webPreferences: {
       nodeIntegration: true,

@@ -1,5 +1,6 @@
 import nltk
 import sys
+import html
 
 #Example usage:
 # python .\highlight_contentwords.py test.txt
@@ -9,7 +10,7 @@ import sys
 #The input file will not be changed. A new output file will be created.
 filename = sys.argv[1]
 
-with open(filename, "r") as input:
+with open(filename, "r", encoding="utf-8") as input:
 	with open("stopwords.txt", "r") as stopwordsFile:
 		stopwords = stopwordsFile.read().split()
 		paragraphs = input.read().splitlines()
@@ -26,8 +27,10 @@ with open(filename, "r") as input:
 			# (Note: this causes an error if we want separators besides single spaces.)
 			paragraphs[index_para] = ' '.join(words) # Look at this syntax. Python is a silly language.
 
+		# TODO: figure out how to make this output in UTF-8 instead of ANSI, since it makes unicode characters work better
+
 		# Output.
-		output_text = '\n'.join(paragraphs)
+		output_text = "<span class=\"low-contrast\">" + '\n'.join(paragraphs) + "</span>"
 		output_filename = "edited_" + filename
-		with open(output_filename, "w") as output:
+		with open(output_filename, "w", encoding='utf-8') as output:
 			output.write(output_text)

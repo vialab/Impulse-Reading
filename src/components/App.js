@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState, useEffect } from 'react';
 import { ipcRenderer } from 'electron';
 
 import '../assets/css/App.css'
@@ -13,7 +13,9 @@ var lastFixation = null;
 var readingScore = 0;
 var skimmingScore = 0;
 var scanningScore = 0;
-var currentMode = READING;
+var inTask = false;
+var scrollLockout = 0;
+var lastScrollPosition = 0;
 
 var pointsWindow = [];
 
@@ -25,6 +27,7 @@ var SHORT_REGRESSION = "SHORT_REGRESSION";
 var LONG_REGRESSION = "LONG_REGRESSION";
 var RESET_JUMP = "RESET_JUMP";
 var UNCLASSIFIED_MOVE = "UNCLASSIFIED_MOVE";
+var VERTICAL_JUMP = "VERTICAL_JUMP"
 var NO_TRANSITION = "NO_TRANSITION";
 
 var READING = "READING";
@@ -38,23 +41,32 @@ var SCANNING = "SCANNING";
 // (1/SAMPLE_RATE)*WINDOW_SIZE
 // equals... something less than 100 ms, and probably more than 30 ms or so, but that's just based on a gut feeling.
 var WINDOW_SIZE = 3;
+var REFRESH_RATE = 33;
 
 var NEW_FIXATION_PX = 30;
 var CURRENT_FIXATION_PX = 50;
 
+var TASK_TIMER_IN_MS = 300000
+
 // Hardcoded constants. This is beneficial during development to allow me to check the algorithm on text from external programs.
 // However, in an ideal world finished product we would use some sort of OCR to change these constants.
-// These are currently set to what feels roughly correct to me for small wikipedia text.
-// THese should DEFINITELY be changed over the course of some user tests / pilot studies before being deployed.
-var CHARACTER_WIDTH = 13; //TODO
-var LINE_HEIGHT = 15; //TODO
+var CHARACTER_WIDTH = 15; //TODO: implement a calibration process to personalize these to what makes sense for the user
+var LINE_HEIGHT = 39;
+
+var testText = "test text";
+var testTextEdited = "test text edited"
+var testTextSentences = "test text sentences"
+
+var endTime = 0;
 
 export default class App extends Component {
 
   constructor(props) {
     super(props)
     this.state = {
-      gazeCursorEnabled: true
+      gazeCursorEnabled: true,
+      page: "FirstPage",
+      currentMode: READING
     }
 
   }
@@ -62,25 +74,41 @@ export default class App extends Component {
   componentDidMount(){
     // Note that the main loop currently only runs when we receive a new gaze position.
     // This has the downside that we don't execute code while the user isn't looking at the screen.
-
-    //const fs = require('fs');
-    // cwd: C:\Users\adeli\Desktop\Tobii-Electron-Starter-main
-/*
-    console.log("cwd: " + process.cwd());
-    console.log("dir " + __dirname);
+    document.addEventListener('keydown', this.handleKeyUp.bind(this));
+    document.addEventListener('scroll', this.handleScroll.bind(this));
 
     const fs = require("fs");
 
-    fs.readFile('testroot.txt', function (err, data) {
+    fs.readFile('./nlp_files/egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
       else {
-        let text = document.getElementById("text2");
-        text.textContent = data.toString();
+        testText = data.toString();
+        testText = testText.replace(/\n/g, "<br />");
       }
     });
-*/
+
+    fs.readFile('./nlp_files/edited_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        testTextEdited = data.toString();
+        testTextEdited = testTextEdited.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/egyptian_climate_smmry.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        testTextSentences = data.toString();
+        testTextSentences = testTextSentences.replace(/\n/g, "<br />");
+      }
+    });
+
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
     });
@@ -100,29 +128,44 @@ export default class App extends Component {
 
       // Based on our transition, update our detectors.
       // TODO: refactor this to allow for a delayed transition / "cooldown period".
-      const newHighest = this.updateDetectors(transitionType);
+      const newHighest = this.updateDetectors(transitionType, newFixation.changeX, newFixation.changeY);
 
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
       const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
-      console.log("new fixation, transition type: " + transitionType + ". diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
-      // If our detector updates led to a new highest candidate, transition to a new mode.
-      if (newHighest) {
-        this.changeMode(newHighest);
-      }
+
+      console.log("transition type: " + transitionType);
+
+      console.log("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
+      
+    
     }
 
     
   }
 
   decayDetectors() {
-    //TOOD: add comment documentation here of how much this decays per second. Also, change the constants.
-    //0.99^50 = 0.605. Probably too fast, currently?
+    // The Tobii 5 has a 33hz rate, so if the user is constantly looking at the screen the decay will be:
+    // 0.99^33 = 0.72x multiplier on the scores per second.
+    // Based on this decay rate and the current constants, mode detector scores tend to cap out at about 50-100 for me.
     readingScore *=0.99;
     skimmingScore *=0.99;
     scanningScore *=0.99;
+
+    if (scrollLockout > 0) {
+      scrollLockout = scrollLockout - 1;
+    }
   }
 
   checkFixation(x, y) {
+
+
+    if (scrollLockout > 0) {
+      this.endCurrentFixation();
+
+      // Here we do NOT check for a new fixation, as the user is scrolling and we can't compare the old pixel values to the new ones.
+      return null;
+    }
+
     this.maintainWindowSize(x, y);
 
     if (!currentFixation) {
@@ -131,6 +174,11 @@ export default class App extends Component {
     else {
       return this.checkCurrentFixation(x, y);
     }
+  }
+
+  endCurrentFixation() {
+    lastFixation = currentFixation;
+    currentFixation = null;
   }
 
   maintainWindowSize(x, y) {
@@ -182,8 +230,7 @@ export default class App extends Component {
 
       if (!isWindowOkay) {
         // This fixation has ended.
-        lastFixation = currentFixation;
-        currentFixation = null;
+        this.endCurrentFixation();
 
         // If the window represents a new fixation that should replace the old one, return the new fixation.
         return this.checkNewFixation();
@@ -229,6 +276,8 @@ export default class App extends Component {
 
 
   classifyTransition(changeX, changeY) {
+    // At this point we have transitioned from our old fixation to the new one. Classify the type of transition based on its angle and distance.
+
     if (changeX == null || changeY == null) {
       return NO_TRANSITION;
     }
@@ -239,23 +288,33 @@ export default class App extends Component {
       const characterSpaces = changeX / CHARACTER_WIDTH;
       const lineSpaces = changeY / LINE_HEIGHT;
 
+      if (lineSpaces > 2.5 || lineSpaces < -2.5) {
+        return VERTICAL_JUMP;
+      }
+
       if (0 < characterSpaces && characterSpaces <= 11) {
         return READ_FORWARD;
       }
       else if (0 < characterSpaces && characterSpaces <= 21) {
         return SKIM_FORWARD;
       }
-      else if (0 < characterSpaces && characterSpaces <= 50) {
-        return LONG_SKIM_JUMP; // TODO: I changed the max from 30 to 50 because I suspect it's dumb, but take a look at this
+      else if (0 < characterSpaces && characterSpaces <= 66) {
+        // The max width here isn't very necessary, but if the jump is longer than the text is wide, it's probably not a real reading-related transition.
+        // The original paper has this max at 30 for AFAICT similar reasons, but either they chose to set it pretty small or they had very narrow text.
+        return LONG_SKIM_JUMP;
       }
       else if (-6 <= characterSpaces && characterSpaces < 0) {
         return SHORT_REGRESSION;
       }
       else if (-16 <= characterSpaces && characterSpaces < -6) {
+        // Note that regressions still have a pretty short maximum length - less than half the length of the page.
+        // True reading-related regressions rarely skip back to the beginning of the page.
         return LONG_REGRESSION;
       }
-      else if (characterSpaces < -16 && lineSpaces > 0.8) {
-        return RESET_JUMP; // TODO: totally guessing on the 0.8 here. Paper just says "y according to line spacing".
+      else if (characterSpaces < -16 && lineSpaces > 0.6) {
+        // The 0.6 isn't taken from the original paper - they just say "y according to line spacing". 0.6 seems to be a good middle ground between making it 
+        // not trigger during the course of reading a line, while still catching reset jumps with some eye tracker variance.
+        return RESET_JUMP;
       }
       else {
         return UNCLASSIFIED_MOVE;
@@ -265,63 +324,139 @@ export default class App extends Component {
   }
 
   //transitionType: a static constant string from this class, representing which fixation transition type triggered this update.
-  updateDetectors(transitionType) {
+  updateDetectors(transitionType, changeX, changeY) {
     //TODO: implement scanning detector.
+
+    // The scanning detector needs to have more logic than a simple +-, so we handle it here.
+    if (transitionType == VERTICAL_JUMP) {
+      return this.updateScanningDetector(transitionType, changeX, changeY);
+    }
 
     // For each type, update the reading score, skimming score, and scanning score.
     switch(transitionType) {
       case READ_FORWARD: return this.changeDetectorScores(10, 5, 0);
       case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0);
       case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 0);
-      case SHORT_REGRESSION: return this.changeDetectorScores(-8, -8, 0);
+      case SHORT_REGRESSION: return this.changeDetectorScores(-5, -5, -12); // Short regressions are rare during scanning, but more common in other types.
       case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, 0);
-      case RESET_JUMP: return this.changeDetectorScores(5, 5, 0);
+      case RESET_JUMP: return this.changeDetectorScores(5, 5, -10); // Reading entire lines of text and then going to the next is rare in scanning.
+      // case VERTICAL_JUMP: handled in if-statement above.
       case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 0);
     }
 
+  }
+
+  updateScanningDetector(transitionType, changeX, changeY) {
+    // If there's been a lot of reset jumps in the last little bit, we're probably reading or skimming.
+    // If we have a large vertical jump, or several vertical jumps in a row, we're more likely to be scanning.
+    // "one of the most expressive measures for relevance is coherently read text length, that
+    // is, the length of text the user has read line by line without skipping any part"
+
+    // Maintain a 10 second window, and compare the number of lines that have been skipped versus read in those seconds. switch on a percentage.
+    // Maintain a virtual window with exponential falloff (same as other scores). Estimate number of lines that have been skipped versus read. switch on a score.
+
+    // Scale the impact of this saccade by the amount of text skipped by this saccade.
+    // Because we didn't hit one of the other types of detectors, changeY will be at least ~2 lines skipped.
+
+    var scoreChange = Math.abs(changeY) * 5;
+    if (scoreChange > 25) {
+      scoreChange = 25;
+    }
+
+    return this.changeDetectorScores(-5, -5, scoreChange);
   }
 
   changeDetectorScores(readChange, skimChange, scanChange) {
     readingScore+=readChange;
     skimmingScore+=skimChange;
     scanningScore+=scanChange;
-    console.log(" reading: " + readingScore + "skimming: " + skimmingScore);
+    console.log(" reading: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore);
 
-    // TODO: implement scanning. Also geez refactor this to abstract it away from doing each comparison directly
-    // e.g. "if highest.mode != currentMode: ""
-    if (currentMode == READING || !currentMode) {
-      if (skimmingScore > readingScore) {
-        currentMode = SKIMMING;
+    if (this.state.currentMode == READING || !this.state.currentMode) {
+      // When we're in a mode, treat its score as 10 points higher. This hysteris reduces the frequency of mode shifts during ambiguous behaviors.
+      if (skimmingScore > (readingScore+10)) {
+
+        // React will call render(), which will update the user-facing HTML if needed.
+        this.setState({currentMode: SKIMMING});
 
         // Make thrashing between different modes less likely; when we switch to a mode, temporarily boost its score.
         // We use a multiplicative score instead of an additive one so the momentum boost is less impactful
         // when the user is just starting out, and more impactful when they've been reading for at least a few seconds.
-        skimmingScore *= 1.2;
-        return currentMode;
+        skimmingScore *= 1.3;
+        return this.state.currentMode;
+      }
+      else if (scanningScore > (readingScore+10)) {
+        this.setState({currentMode: SCANNING});
+        scanningScore *= 1.3;
+        return this.state.currentMode;
       }
     }
-    else if (currentMode == SKIMMING) {
-      if (readingScore > skimmingScore) {
-        currentMode = READING;
-        readingScore *= 1.2;
-        return currentMode;
+    else if (this.state.currentMode == SKIMMING) {
+      if (readingScore > (skimmingScore+10)) {
+        this.setState({currentMode: READING});
+        readingScore *= 1.3;
+        return this.state.currentMode;
+      }
+      else if (scanningScore > (skimmingScore+10)) {
+        this.setState({currentMode: SCANNING});
+        scanningScore *= 1.3;
+        return this.state.currentMode;
       }
     }
+    else if (this.state.currentMode == SCANNING) {
+      if (readingScore > (scanningScore+10)) {
+        this.setState({currentMode: READING});
+        readingScore *= 1.3;
+        return this.state.currentMode;
+      }
+      else if (skimmingScore > (scanningScore+10)) {
+        this.setState({currentMode: SKIMMING});
+        scanningScore *= 1.3;
+        return this.state.currentMode;
+      }
+    }
+
     return null;
   }
 
-  changeMode(newHighest) {
-    let element = document.getElementById("square");
-    let text = document.getElementById("text");
+  handleKeyUp(event) {
 
-    if (currentMode == READING) {
-      element.style.backgroundColor = "coral";
-      text.textContent = "Reading!";
+    if(event.ctrlKey && event.key === "1"){
+      console.log("Switching to mode 1!");
     }
-    else if (currentMode == SKIMMING) {
-      element.style.backgroundColor = "skyblue";
-      text.textContent = "Skimming!";
+    else if(event.ctrlKey && event.key === "2"){
+      console.log("Switching mode 2!");
     }
+    else if(event.ctrlKey && event.key === "3"){
+      console.log("Switching mode 3!");
+    }
+  }
+
+  handleScroll(event) {
+
+    var last = lastScrollPosition;
+
+    var doc = document.documentElement;
+    var newScrollPosition = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+
+    var scrollDifferenceInPx = newScrollPosition - lastScrollPosition;
+    scrollDifferenceInPx = Math.abs(scrollDifferenceInPx);
+
+    lastScrollPosition = newScrollPosition;
+
+    // E.g., scrolling 8 lines (~ a paragraph down) will mean an update of about 15-20 for the scanning detector.
+    // This is a relatively minor portion of the scanning update in most cases, but
+    // it allows us to set scanning while the user is scrolling quickly over the whole document.
+    // Cap it at 150 so that the scores don't go to extremes when scrolling over the entire document.
+    if(scanningScore < 150) {
+    var scanningDetectorChange = scrollDifferenceInPx / 15;
+    this.changeDetectorScores(0, 0, scanningDetectorChange);
+    }
+    
+    // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
+    scrollLockout = Math.floor(REFRESH_RATE / 3);
+
+    console.log("Scroll event. Scanning detector change: " + scanningDetectorChange);
   }
 
 
@@ -333,22 +468,292 @@ export default class App extends Component {
 
   }
 
+
   render() {
     return (
       <div className="App" key={this.state.activeDemo}>
         <header className="App-header">
           <div id="gazeCursor"></div>
         </header>
-        <div className='container'>
-          <div id='square'>
-            <p id="text">Look at me!</p>
-          </div>
-          <div id='square2'>
-            <p id="text2">Look at me!</p>
-          </div>
+        <div>
+          {this.getPage(this.state.page, this.state.currentMode)}
         </div>
       </div>
     );
   }
 
+  getPage(pageName, currentMode) {
+    switch(pageName) {
+      case "FirstPage":
+          return this.createFirstPage();
+          break;
+      case "SecondPage":
+          return this.createSecondPage(currentMode);
+          break;
+      case "ThirdPage":
+          return this.createThirdPage();
+          break;
+      case "FourthPage":
+          return this.createFourthPage();
+          break;
+      default:
+          return this.createFirstPage();
+    };
+  }
+
+  createFirstPage() {
+    // We make the onClick callback functions here, rather than in the Page classes, so that "this" refers to the App component.
+    return (<FirstPage 
+      onClick = {() => this.firstPageOnClick()}
+    />);
+  }
+
+  firstPageOnClick() {
+    inTask = true;
+    
+    // Always start the task in reading mode with a decent lead, so the user gets at least a couple seconds of unformatted text.
+    this.setState({currentMode: READING});
+    readingScore = 50;
+    skimmingScore = 0;
+    scanningScore = 0;
+
+
+    const startTime = Date.now();
+    endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
+    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS);
+    this.setState({page: "SecondPage"});
+  }
+
+  endTaskIfOngoing() {
+    console.log("5 minute timer has elapsed");
+    if (inTask) {
+      this.setState({page: "ThirdPage"});
+      inTask = false;
+    }
+  }
+
+  createSecondPage(currentMode) {
+    return (<SecondPage
+      onClick = {() => this.secondPageOnClick()}
+      currentMode = {currentMode}
+    />);
+  }
+
+  secondPageOnClick() {
+    inTask = false;
+    this.setState({page: "ThirdPage"});
+  }
+
+  createThirdPage() {
+    return (<ThirdPage
+      onClick = {() => this.setState({page:"FourthPage"})}
+    />);
+  }
+
+  createFourthPage() {
+    return (<FourthPage
+      onClick = {() => this.setState({page:"FirstPage"})}
+    />);
+  }
+}
+
+
+export class FirstPage extends Component {
+
+  render() {
+    return (
+
+      <div className="App">
+        <h2>Task 1</h2>
+        <div className='text'>
+          <p className='text'>
+            For this task, you will be roleplaying as a high schooler writing a report on the effects of climate change in the Middle East.
+            To do this, you will read a passage from Wikipedia about the settlement and development of Ancient Egypt.
+            For your report, only some of the information in this passage will be useful:
+            you will need to find information on <b>weather and climate</b> in Ancient Egypt, including information about climate change and
+            climate events like floods or droughts. Any other information can be ignored.
+            The text is quite long, so it is recommended to skim the text quickly to find the information you need.
+          </p>
+          <p className='text'>
+            Once you begin, you will have 5 minutes to read. After these 5 minutes are up, we'll ask you some questions about the passage.
+            You won't be able to go back to the passage once time is up, so do your best to read quickly and find the most relevant information.
+            These questions will ask only about weather and climate in Ancient Egypt, so be on the lookout for those events.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Start
+        </button>
+      </div>
+    );
+  }
+}
+
+export class SecondPage extends Component {
+
+  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
+  render() {
+
+    var htmlText = "";
+
+    if (this.props.currentMode == READING) {
+      htmlText = testText;
+    }
+    else if (this.props.currentMode == SKIMMING) {
+      htmlText = testTextEdited;
+    }
+    else {
+      htmlText = testTextSentences;
+    }
+
+    return (
+      <div className="App">
+        <div className="sidebar">
+          <Timer />
+        </div>
+        <h2>Ancient Egypt</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button' onClick={this.props.onClick} >
+          Move to Questions
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ThirdPage extends Component {
+
+  // TODO: we REALLY need to do this in a programmatic way. Fix this once we're done with the demo.
+  render() {
+    return (
+      <div className="App">
+        1.  What categorized the Egyptian climate in Predynastic and Early Dynastic times?
+        <div className="field">
+          <input type="radio" id="chinese-1a" name="chinese-1" value="A"/>
+          <label htmlFor="chinese-1a">The climate was much less arid than it is today, and covered in trees</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-1b" name="chinese-1" value="B"/>
+          <label htmlFor="chinese-1b">The Nile River flooded more often, causing mass destruction in the small tribes of the area</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-1c" name="chinese-1" value="C"/>
+          <label htmlFor="chinese-1c">The desert temperature was much cooler than in the Late Dynastic period</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-1d" name="chinese-1" value="D"/>
+          <label htmlFor="chinese-1d">Droughts were common due to a mass aridification event</label>
+        </div>
+        <br />
+
+        2. What seasons did the ancient Egyptians recognize?
+        <div className="field">
+          <input type="radio" id="chinese-2a" name="chinese-2" value="A"/>
+          <label htmlFor="chinese-2a">Flooding, planting, and harvesting</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-2b" name="chinese-2" value="B"/>
+          <label htmlFor="chinese-2b">Spring, summer, fall, and winter</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-2c" name="chinese-2" value="C"/>
+          <label htmlFor="chinese-2c">Wet and dry</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-2d" name="chinese-2" value="D"/>
+          <label htmlFor="chinese-2d">Inundation, Going Forth, and Deficiency</label>
+        </div>
+        <br />
+
+        3. What climate events were belived to contribute to the period of famine and strife known as the First Intermediate Period?
+        <div className="field">
+          <input type="radio" id="chinese-3a" name="chinese-3" value="A"/>
+          <label htmlFor="chinese-3a">Droughts</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-3b" name="chinese-3" value="B"/>
+          <label htmlFor="chinese-3b">Sandstorms</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-3c" name="chinese-3" value="C"/>
+          <label htmlFor="chinese-3c">Earthquakes</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-3d" name="chinese-3" value="D"/>
+          <label htmlFor="chinese-3d">Flooding</label>
+        </div>
+        <br />
+
+        4.  The ruler Amenemhat III's reign was marked by severe Nile floods. What effect did these floods have on his reign?
+        <div className="field">
+          <input type="radio" id="chinese-4a" name="chinese-4" value="A"/>
+          <label htmlFor="chinese-4a">They strained the economy and precipitated a slow decline</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-4b" name="chinese-4" value="B"/>
+          <label htmlFor="chinese-4b">They caused heightened unrest which led to a mass rebellion</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-4c" name="chinese-4" value="C"/>
+          <label htmlFor="chinese-4c">They destroyed farmers' crops and caused a severe famine</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="chinese-4d" name="chinese-4" value="D"/>
+          <label htmlFor="chinese-4d">They were seen as a sign of the god's disfavor, which forced Amenemhat III into exile</label>
+        </div>
+        <br />
+        <button className='button' onClick={this.props.onClick} >
+          Submit
+        </button>
+      </div>
+      );
+  }
+}
+
+export class FourthPage extends Component {
+
+  render() {
+    return (
+      <div className="App">
+        <p className='text'> Thank you for answering! This concludes the demo.</p>
+        <button className='button' onClick={this.props.onClick} >
+          Back to Start
+        </button>
+      </div>
+    );
+  }
+}
+
+export function Timer() {
+
+  const initMinutes = ((TASK_TIMER_IN_MS / 1000 / 60) % 60)
+  const initSeconds = ((TASK_TIMER_IN_MS / 1000) % 60)
+
+  const [minutes, setMinutes] = useState(initMinutes);
+  const [seconds, setSeconds] = useState(initSeconds);
+
+  const getTime = () => {
+    // Using Math.floor means that the timer has 1 second where it shows 0:00, instead of going straight to the quiz after 0:01. I think this is beneficial.
+    const time = endTime - Date.now();
+    setMinutes(Math.floor((time / 1000 / 60) % 60));
+    setSeconds(Math.floor((time / 1000) % 60));
+  };
+
+  // Minor issue here where the timer doesn't get updated on the first second, so it skips from 5:00 to 4:58. Not worth fixing.
+
+  React.useEffect(() => {
+    const interval = setInterval(() => getTime(endTime), 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="timer" role="timer">
+      <div className="col-4">
+        <div className="box">
+          <p id="minute">Time remaining: {minutes}:{seconds < 10 ? "0" + seconds : seconds}</p>
+          <p> Current task: Find historical events <b>from the 1300s</b>.</p>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1,17 +1,116 @@
 /* Main CSS file */
 
-html{
-  overflow: hidden;
-}
 
 .container {
-  height: 100vh;
-  width: 100vw;
+  height: 1px;
+  width: 1px;
   padding: 0;
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: fixed;
+  bottom: 0;
+}
+
+br
+{   content: "A" !important;
+    display: block !important;
+    margin-bottom: 0.5em !important;
+}
+
+.App {
+  width: 790px;   /* Chosen so the text size fits around 78-80 characters per line. Try to maintain that number if we change the font. */
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  font-size: 22px;
+  line-height: 1.5;
+  /* Tahoma is a semi-condensed form of Verdana. Verdana is very readable, but has very large horizontal spacing that leads to text separation issues
+  for very large text. Condensing it slightly is therefore an improvement for our case.*/
+  Font-family: Tahoma;
+}
+
+.App h1 {
+  /* Georgia is the serif counterpart to Verdana. Serifs are beneficial on header text to add more distinction from body text.*/
+  font-family: Georgia;
+}
+
+.App h2 {
+  font-family: Georgia;
+}
+
+.App h3 {
+  font-family: Georgia;
+}
+
+.text {
+  font-size: 22px;
+  line-height: 1.8;
+  word-break: normal;
+  overflow-wrap: break-word;
+  display: block;
+  border-left: 2px solid lightgrey;
+  border-right: 2px solid lightgrey;
+  padding-left: 23px;
+  padding-right: 23px;
+  margin-left: -25px;
+  margin-right: -25px;
+}
+
+.field {
+  font-size: 18px;
+}
+
+.button {
+  font-size: 20px;
+  line-height: 1.5;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: gray;
+  color: #606060;
+  background-color: white;
+  padding: 8px 16px;
+}
+
+.button:hover {
+  background-color: lavender;
+  color: black;
+  box-shadow: 0 1px 4px 2px #EEEEEE;
+}
+
+.low-contrast {
+  color: #989898;
+}
+
+.low-contrast h1 {
+  color: black;
+}
+
+.low-contrast h2 {
+  color: black;
+}
+
+.low-contrast h3 {
+  color: black;
+}
+
+.impulse-fixation {
+  color:black;
+}
+
+.sidebar {
+  height: 20%;
+  width: 250px;
+  position: fixed;
+  left: 0;
+  top: 150px;
+  font-size: 20px;
+  padding-top: 40px;
+  padding-left: 20px;
+  background-color: Lavender;
+  border-radius: 0px 25px 25px 0px;
 }
 
 #gazeCursor {
