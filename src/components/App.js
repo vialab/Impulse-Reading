@@ -751,7 +751,7 @@ export function Timer() {
       <div className="col-4">
         <div className="box">
           <p id="minute">Time remaining: {minutes}:{seconds < 10 ? "0" + seconds : seconds}</p>
-          <p> Current task: Find historical events <b>from the 1300s</b>.</p>
+          <p> Current task: Find info about <b>weather and climate</b>.</p>
         </div>
       </div>
     </div>
