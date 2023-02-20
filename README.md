@@ -41,4 +41,7 @@ You need to install Tobii Experience to use the eyetracker. Usually this should 
 I followed these directions and it worked fine: https://help.tobii.com/hc/en-us/articles/360009929118-Get-the-Tobii-Experience-app
 
 #### Eye tracker server issues
-If the TobiiServer.exe file gives you an error about Tobii.EyeX.Client.dll being missing, the issue might be with your Visual C++ redistributable. Install the latest versions of BOTH x86 and x64, then try again. This should only have to be done once, and probably shouldn't happen unless you're on a new computer.
+If the TobiiServer.exe file gives you an error about Tobii.EyeX.Client.dll being missing, the issue might be with your Visual C++ redistributable. Install the latest versions of BOTH x86 and x64, then try again. Also, download the 2012 versions (both x86 and x64), linked here: https://learn.microsoft.com/en-GB/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2012-vc-110-update-4
+
+I'm not 100% sure why this happens, or what exactly is required to fix it. But installing both the most recent redistributables and the 2012 redistributables has fixed it both times I've had to do this.
+This should only have to be done once, and probably shouldn't happen unless you're on a new computer. Sorry!
