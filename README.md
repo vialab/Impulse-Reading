@@ -23,6 +23,8 @@ In the Tobii Experience app which should already be installed on your computer, 
 #### Run the eye tracker server
 Run 'Tobii Server/TobiiServer.exe' - that is, the TobiiServer.exe file from the folder "Tobii Server" in this directory. You should keep this window open while using the app. I recommend minimizing the window while using the app to keep the text scrolling from being distracting.
 
+This step commonly experiences issues on new computers. See "Eye tracker server issues" below.
+
 #### Launch the app
 In a command line, execute:
 ```
