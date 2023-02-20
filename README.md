@@ -45,3 +45,6 @@ If the TobiiServer.exe file gives you an error about Tobii.EyeX.Client.dll being
 
 I'm not 100% sure why this happens, or what exactly is required to fix it. But installing both the most recent redistributables and the 2012 redistributables has fixed it both times I've had to do this.
 This should only have to be done once, and probably shouldn't happen unless you're on a new computer. Sorry!
+
+#### Launch the app issues
+If you run "yarn start" and get an error like "Invalid value type 1137:0", delete the file "yarn.lock" from this directory and try again.
