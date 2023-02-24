@@ -292,7 +292,7 @@ export default class App extends Component {
         return VERTICAL_JUMP;
       }
 
-      if (0 < characterSpaces && characterSpaces <= 11) {
+      if (0 < characterSpaces && characterSpaces <= 8) {
         return READ_FORWARD;
       }
       else if (0 < characterSpaces && characterSpaces <= 21) {
