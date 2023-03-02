@@ -57,6 +57,16 @@ var testText = "test text";
 var testTextEdited = "test text edited"
 var testTextSentences = "test text sentences"
 
+var tutorialTextReading;
+var tutorialTextSkimming;
+var tutorialTextScanning;
+
+var isTakingTutorialFast = false;
+var isTakingTutorialSlow = false;
+var slowForwardSaccades = [];
+var fastForwardSaccades = [];
+var skimForwardCharacterSpaces = 8; // This default gets changed to a calibrated value before it's actually used for anything.
+
 var endTime = 0;
 
 export default class App extends Component {
@@ -65,7 +75,7 @@ export default class App extends Component {
     super(props)
     this.state = {
       gazeCursorEnabled: true,
-      page: "FirstPage",
+      page: "TutorialSkimming",
       currentMode: READING
     }
 
@@ -109,6 +119,36 @@ export default class App extends Component {
       }
     });
 
+    fs.readFile('./nlp_files/tutorial_text/reading.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextReading = data.toString();
+        tutorialTextReading = tutorialTextReading.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/skimming.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextSkimming = data.toString();
+        tutorialTextSkimming = tutorialTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/scanning.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextScanning = data.toString();
+        tutorialTextScanning = tutorialTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
     });
@@ -133,9 +173,9 @@ export default class App extends Component {
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
       const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
 
-      console.log("transition type: " + transitionType);
+      //console.log("transition type: " + transitionType);
 
-      console.log("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
+      //console.log("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
       
     
     }
@@ -185,7 +225,7 @@ export default class App extends Component {
     if (pointsWindow.length >= WINDOW_SIZE) {
       pointsWindow.pop();
     }
-    pointsWindow.unshift({x: x, y: y});
+    pointsWindow.unshift({x: x, y: y}); // unshift() adds an element to the beginning of the array.
   }
 
   checkNewFixation() {
@@ -293,6 +333,15 @@ export default class App extends Component {
       }
 
       if (0 < characterSpaces && characterSpaces <= 8) {
+      // During the tutorials, we update the forward saccade calibration on non-vertical forward saccades.
+      if (isTakingTutorialFast && 0 < characterSpaces) {
+        this.updateCalibration(characterSpaces, true);
+      }
+      else if (isTakingTutorialSlow && 0 < characterSpaces) {
+        this.updateCalibration(characterSpaces, false);
+      }
+
+      if (0 < characterSpaces && characterSpaces <= skimForwardCharacterSpaces) {
         return READ_FORWARD;
       }
       else if (0 < characterSpaces && characterSpaces <= 21) {
@@ -323,9 +372,50 @@ export default class App extends Component {
 
   }
 
+  updateCalibration(characterSpaces, isFast) {
+    if (isFast) {
+      fastForwardSaccades.push(characterSpaces);
+    }
+    else {
+      slowForwardSaccades.push(characterSpaces);
+    }
+  }
+
+  calculateForwardSaccadeLength() {
+    // Saccadic distance varies heavily by person. For example, my reading saccades are something like 11 characters on average for reading,
+    // and 13 characters on average for skimming. Jo's were about 5.5 and 6.5, and Celyn's were 6.5 and 8.
+    // Clearly, any single number won't work. But the exact choice of number isn't super trivial, since the distributions for skimming and
+    // scanning overlap heavily and have a similar right-skewed distribution, differing only in their overall mean.
+    // Busch 2012 "personalizes" this metric by... personalizing the percentage of text read or skimmed... instead of actually personalizing
+    // their reading/skimming detector. That won't work for our purposes (and honestly probably didn't work very well for theirs).
+
+    // Instead, what we do is have the user skim about 1.5 pages of text, and read about 1 page of text. We track the average forward saccadic
+    // distance for those texts, and average them. Then, we average those two numbers, and set that as our boundary between READ_FORWARD
+    // and SKIM_FORWARD. This seems to work pretty well based on my testing, but is definitely ad-hoc. (But we should mention it as an improvement
+    // we made over Busch's SOTA, since their algorithm is pretty dumb.)
+
+    let avgFast = this.arrayAverage(fastForwardSaccades);
+    let avgSlow = this.arrayAverage(slowForwardSaccades);
+
+    // If the averages differed significantly, that's great!
+    if ((avgSlow + 1) <= avgFast) {
+      skimForwardCharacterSpaces = this.average(avgFast, avgSlow);
+    }
+    else {
+      // If they didn't, we're kinda in trouble. Let's hope this doesn't happen very often in our actual study, and mark when it does happen.
+      skimForwardCharacterSpaces = avgSlow + 0.5;
+      console.log("WARNING: calibration didn't find significant difference between skimming and reading.");
+    }
+    
+    console.log("Calibration complete - avg. fast: " + avgFast + ", avg slow: " + avgSlow + ", skim boundary: " + skimForwardCharacterSpaces);
+  }
+
+  arrayAverage(list) {
+    return (list.reduce((prev, curr) => prev + curr) / list.length);
+  }
+
   //transitionType: a static constant string from this class, representing which fixation transition type triggered this update.
   updateDetectors(transitionType, changeX, changeY) {
-    //TODO: implement scanning detector.
 
     // The scanning detector needs to have more logic than a simple +-, so we handle it here.
     if (transitionType == VERTICAL_JUMP) {
@@ -370,7 +460,7 @@ export default class App extends Component {
     readingScore+=readChange;
     skimmingScore+=skimChange;
     scanningScore+=scanChange;
-    console.log(" reading: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore);
+    //console.log(" reading: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore);
 
     if (this.state.currentMode == READING || !this.state.currentMode) {
       // When we're in a mode, treat its score as 10 points higher. This hysteris reduces the frequency of mode shifts during ambiguous behaviors.
@@ -444,19 +534,19 @@ export default class App extends Component {
 
     lastScrollPosition = newScrollPosition;
 
-    // E.g., scrolling 8 lines (~ a paragraph down) will mean an update of about 15-20 for the scanning detector.
+    // E.g., scrolling 8 lines (~ a paragraph down) will mean an update of about 7-10 for the scanning detector.
     // This is a relatively minor portion of the scanning update in most cases, but
     // it allows us to set scanning while the user is scrolling quickly over the whole document.
-    // Cap it at 150 so that the scores don't go to extremes when scrolling over the entire document.
-    if(scanningScore < 150) {
-    var scanningDetectorChange = scrollDifferenceInPx / 15;
+    // Cap it at a maximum constant so that the scores don't go to extremes when scrolling over the entire document.
+    if(scanningScore < 100) {
+    var scanningDetectorChange = scrollDifferenceInPx / 30;
     this.changeDetectorScores(0, 0, scanningDetectorChange);
     }
     
     // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
     scrollLockout = Math.floor(REFRESH_RATE / 3);
 
-    console.log("Scroll event. Scanning detector change: " + scanningDetectorChange);
+    //console.log("Scroll event. Scanning detector change: " + scanningDetectorChange);
   }
 
 
@@ -483,7 +573,29 @@ export default class App extends Component {
   }
 
   getPage(pageName, currentMode) {
+    // We make the onClick callback functions in these functions, rather than in the Page classes, so that "this" refers to the App component.
     switch(pageName) {
+      case "TutorialSkimming":
+          return this.createTutorialSkimming();
+          break;
+      case "SkimmingExample":
+          return this.createSkimmingExample();
+          break;
+      case "TutorialScanning":
+          return this.createTutorialScanning();
+          break;
+      case "ScanningExample":
+          return this.createScanningExample();
+          break;
+      case "TutorialReading":
+          return this.createTutorialReading();
+          break;
+      case "ReadingExample":
+          return this.createReadingExample();
+          break;
+      case "TutorialManual":
+          return this.createTutorialManual();
+          break;
       case "FirstPage":
           return this.createFirstPage();
           break;
@@ -497,12 +609,90 @@ export default class App extends Component {
           return this.createFourthPage();
           break;
       default:
-          return this.createFirstPage();
+          return this.createTutorialSkimming();
     };
   }
 
+  createTutorialSkimming() {
+
+    // Once the user clicks Next to go to the skimming example, we need to know we should start keeping track of forward saccades for calibration.
+    let startExampleFunc = () => {
+      this.setState({page: "SkimmingExample"});
+      isTakingTutorialFast = true;
+    };
+
+    return (<TutorialSkimming 
+      onClick = {startExampleFunc}
+    />);
+  }
+
+  createSkimmingExample() {
+    
+    // After the user clicks Next and leaves the skimming example, we should stop tracking forward saccades until the next chance for calibration.
+    let endExampleFunc = () => {
+      this.setState({page: "TutorialScanning"});
+      isTakingTutorialFast = false;
+    };
+
+    return (<SkimmingExample 
+      onClick = {endExampleFunc}
+    />);
+  }
+
+  createTutorialScanning() {
+    let startExampleFunc = () => {
+      this.setState({page: "ScanningExample"});
+      isTakingTutorialFast = true;
+    };
+
+    return (<TutorialScanning 
+      onClick = {startExampleFunc}
+    />);
+  }
+
+  createScanningExample() {
+    let endExampleFunc = () => {
+      this.setState({page: "TutorialReading"});
+      isTakingTutorialFast = false;
+    };
+
+    return (<ScanningExample 
+      onClick = {endExampleFunc}
+    />);
+  }
+
+  createTutorialReading() {
+    let startExampleFunc = () => {
+      this.setState({page: "ReadingExample"});
+      isTakingTutorialSlow = true;
+    };
+
+    return (<TutorialReading 
+      onClick = {startExampleFunc}
+    />);
+  }
+
+  createReadingExample() {
+    let endExampleFunc = () => {
+      this.setState({page: "TutorialManual"});
+      isTakingTutorialSlow = false;
+
+      // At this point, we've received all our calibration data. Let's calculate the result of that calibration now.
+      this.calculateForwardSaccadeLength();
+    };
+
+    return (<ReadingExample 
+      onClick = {endExampleFunc}
+    />);
+  }
+
+  createTutorialManual() {
+    return (<TutorialManual 
+      onClick = {() => this.setState({page: "FirstPage"})}
+    />);
+  }
+
   createFirstPage() {
-    // We make the onClick callback functions here, rather than in the Page classes, so that "this" refers to the App component.
     return (<FirstPage 
       onClick = {() => this.firstPageOnClick()}
     />);
@@ -556,6 +746,185 @@ export default class App extends Component {
     />);
   }
 }
+
+export class TutorialSkimming extends Component {
+  render() {
+    return (
+
+      <div className="App">
+        <h2>Tutorial</h2>
+        <div className='text'>
+          <p className='text'>
+            In today's study, you will read passages while searching for information. Only some of the information in these passages will be useful.
+            The passages you will read are quite long, so it is recommended to skim the text quickly to find the information you need.
+            To help you read and find information more quickly, we have built a computer system that will format the text in certain ways.
+          </p>
+          <p className='text'>
+            The first format is highlighting content words, like verbs, nouns, or adjectives. This has been scientifically shown to help with skimming
+            a piece of text quickly. When you are ready, click "Next" to read a piece of text formatted in this way. There isn't any time limit and
+            you may take as long as you want, but we ask that you try to skim the text quickly.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class SkimmingExample extends Component {
+
+  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
+  render() {
+
+    var htmlText = tutorialTextSkimming;
+      
+    return (
+      <div className="App">
+        <h2>Ancient Egypt</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class TutorialScanning extends Component {
+  render() {
+    return (
+
+      <div className="App">
+        <h2>Tutorial</h2>
+        <div className='text'>
+          <p className='text'>
+            The second format is highlighting certain sentences. These sentences have been chosen by an automated tool because they are useful for
+            understanding an overall summary of the passage. It's important to note that these sentences are not necessarily more important than sentences that are
+            not highlighted. Sometimes important information may
+            be in sentences that are not highlighted. Highlighted sentences are best used to scan quickly over a document and get a general idea of its contents. 
+          </p>
+          <p className='text'>
+            When you are ready, click "Next" to read a piece of text formatted in this way. There isn't any time limit and
+            you may take as long as you want, but we ask that you try to skim the text quickly.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ScanningExample extends Component {
+
+  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
+  render() {
+
+    var htmlText = tutorialTextScanning;
+
+    return (
+      <div className="App">
+        <h2>Ancient Egypt</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class TutorialReading extends Component {
+  render() {
+    return (
+
+      <div className="App">
+        <h2>Tutorial</h2>
+        <div className='text'>
+          <p className='text'>
+            The final format is normal text. All special formatting will be removed in this mode. This mode is most useful for reading
+            text thoroughly, like in situations where you want to make sure you understand all of the information in a passage.
+          </p>
+          <p className='text'>
+            For this passage, we ask that you try to read the text thoroughly. Try not to skim the passage or skip anything.
+            When you're ready, click "Next" to read a piece of text formatted this way.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ReadingExample extends Component {
+
+  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
+  render() {
+
+    var htmlText = tutorialTextReading;
+
+    return (
+      <div className="App">
+        <h2>Ancient Egypt</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class TutorialManual extends Component {
+  render() {
+
+
+    // TODO: set this text dynamically.
+
+
+
+    return (
+
+      <div className="App">
+        <h2>Tutorial</h2>
+
+        <div className="sidebar-buttons">
+          <button className='button flex-button' onClick={this.props.onClick} >
+            Remove Formatting
+          </button>
+          <button className='button flex-button' onClick={this.props.onClick} >
+            Highlight Content Words
+          </button>
+          <button className='button flex-button' onClick={this.props.onClick} >
+            Highlight Sentences
+          </button>
+        </div>
+        <div className='text'>
+          <p className='text'>
+            During one of your tasks, you will have control over the formatting of the text. In that task, a control bar will appear on the left-hand side
+            of the screen. You can click the buttons on this control to change the highlighting of the text. If you prefer, you can also use the shortcuts
+            Ctrl+1, Ctrl+2, and Ctrl+3 to change the formatting mode.
+            
+          </p>
+          <p className='text'>
+            Please try formatting this text now. When you're ready to continue, click "Next" to receive instructions about the first task.
+          </p>
+
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+
 
 
 export class FirstPage extends Component {

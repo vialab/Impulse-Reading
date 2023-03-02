@@ -58,6 +58,10 @@ br
   margin-right: -25px;
 }
 
+.narrow {
+  width: 80%;
+}
+
 .field {
   font-size: 18px;
 }
@@ -72,6 +76,10 @@ br
   color: #606060;
   background-color: white;
   padding: 8px 16px;
+}
+
+.flex-button {
+  width: 200px;
 }
 
 .button:hover {
@@ -111,6 +119,22 @@ br
   padding-left: 20px;
   background-color: Lavender;
   border-radius: 0px 25px 25px 0px;
+}
+
+.sidebar-buttons {
+  width: 250px;
+  position: fixed;
+  left: 0;
+  top: 500px;
+  font-size: 20px;
+  padding-top: 40px;
+  padding-left: 20px;
+  padding-bottom: 40px;
+  background-color: Lavender;
+  border-radius: 0px 25px 25px 0px;
+  display: flex;
+  flex-direction: column;
+  flex-basis: 0px;
 }
 
 #gazeCursor {
