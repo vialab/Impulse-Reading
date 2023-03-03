@@ -50,7 +50,7 @@ var TASK_TIMER_IN_MS = 300000
 
 // Hardcoded constants. This is beneficial during development to allow me to check the algorithm on text from external programs.
 // However, in an ideal world finished product we would use some sort of OCR to change these constants.
-var CHARACTER_WIDTH = 15; //TODO: implement a calibration process to personalize these to what makes sense for the user
+var CHARACTER_WIDTH = 15;
 var LINE_HEIGHT = 39;
 
 var testText = "test text";
@@ -167,7 +167,6 @@ export default class App extends Component {
       const transitionType = this.classifyTransition(newFixation.changeX, newFixation.changeY);
 
       // Based on our transition, update our detectors.
-      // TODO: refactor this to allow for a delayed transition / "cooldown period".
       const newHighest = this.updateDetectors(transitionType, newFixation.changeX, newFixation.changeY);
 
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
@@ -284,8 +283,9 @@ export default class App extends Component {
     else {
       // This point was in the current fixation. Update this fixation, and return null because there's no new fixation.
 
-      //TODO: this algorithm is really dumb, isn't it? comes straight from the paper, but it has no concept of outliers if you happen to be
+      //This algorithm is really dumb, isn't it? comes straight from the paper, but it has no concept of outliers if you happen to be
       // within 50 px of the current fixation, meaning that a single outlier can peg the window significantly off of where it should be.
+      // We probably could improve this, but we don't really care that much about every single saccade/fixation being 100% accurate.
 
       currentFixation.maxX = withinFixation.candidateMaxX;
       currentFixation.minX = withinFixation.candidateMinX;
@@ -323,8 +323,6 @@ export default class App extends Component {
     }
 
     else {
-      // TODO: When implementing the scanning detector, we'll need to add more logic for vertical jumps.
-      // Currently these assume any horizontal movement is associated with reading or skimming, even if it's also heavily vertical.
       const characterSpaces = changeX / CHARACTER_WIDTH;
       const lineSpaces = changeY / LINE_HEIGHT;
 
