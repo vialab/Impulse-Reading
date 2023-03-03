@@ -332,7 +332,6 @@ export default class App extends Component {
         return VERTICAL_JUMP;
       }
 
-      if (0 < characterSpaces && characterSpaces <= 8) {
       // During the tutorials, we update the forward saccade calibration on non-vertical forward saccades.
       if (isTakingTutorialFast && 0 < characterSpaces) {
         this.updateCalibration(characterSpaces, true);
