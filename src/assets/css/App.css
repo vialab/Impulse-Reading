@@ -82,6 +82,26 @@ br
   right:10px;
 }
 
+.highlight-one {
+  color:black;
+}
+
+.highlight-two {
+  color:#545454;
+}
+
+.highlight-three {
+  color:#888888;
+}
+
+.highlight-four {
+  color:#B0B0B0;
+}
+
+.highlight-five {
+  color:#CFCFCF;
+}
+
 .narrow {
   width: 80%;
 }

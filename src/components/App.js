@@ -118,7 +118,7 @@ export default class App extends Component {
       }
     });
 
-    fs.readFile('./nlp_files/egyptian_climate_smmry.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile('./nlp_files/fadeout_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
