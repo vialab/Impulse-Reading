@@ -14,6 +14,7 @@ var readingScore = 0;
 var skimmingScore = 0;
 var scanningScore = 0;
 var inTask = false;
+var manualControl = false;
 var scrollLockout = 0;
 var lastScrollPosition = 0;
 
@@ -54,12 +55,20 @@ var CHARACTER_WIDTH = 15;
 var LINE_HEIGHT = 39;
 
 var testText = "test text";
-var testTextEdited = "test text edited"
-var testTextSentences = "test text sentences"
+var testTextEdited = "test text edited";
+var testTextSentences = "test text sentences";
+
+var manualText;
+var manualTextSkimming;
+var manualTextScanning;
 
 var tutorialTextReading;
 var tutorialTextSkimming;
 var tutorialTextScanning;
+
+var tutorialManualTextReading;
+var tutorialManualTextSkimming;
+var tutorialManualTextScanning;
 
 var isTakingTutorialFast = false;
 var isTakingTutorialSlow = false;
@@ -119,6 +128,36 @@ export default class App extends Component {
       }
     });
 
+    fs.readFile('./nlp_files/chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualText = data.toString();
+        manualText = manualText.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/edited_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualTextSkimming = data.toString();
+        manualTextSkimming = manualTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/chinese_history_smmry.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualTextScanning = data.toString();
+        manualTextScanning = manualTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
     fs.readFile('./nlp_files/tutorial_text/reading.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
@@ -146,6 +185,36 @@ export default class App extends Component {
       else {
         tutorialTextScanning = data.toString();
         tutorialTextScanning = tutorialTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_reading.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextReading = data.toString();
+        tutorialManualTextReading = tutorialManualTextReading.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_skimming.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextSkimming = data.toString();
+        tutorialManualTextSkimming = tutorialManualTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_scanning.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextScanning = data.toString();
+        tutorialManualTextScanning = tutorialManualTextScanning.replace(/\n/g, "<br />");
       }
     });
 
@@ -184,11 +253,11 @@ export default class App extends Component {
 
   decayDetectors() {
     // The Tobii 5 has a 33hz rate, so if the user is constantly looking at the screen the decay will be:
-    // 0.99^33 = 0.72x multiplier on the scores per second.
+    // 0.993^33 = 0.79x multiplier on the scores per second.
     // Based on this decay rate and the current constants, mode detector scores tend to cap out at about 50-100 for me.
-    readingScore *=0.99;
-    skimmingScore *=0.99;
-    scanningScore *=0.99;
+    readingScore *=0.993;
+    skimmingScore *=0.993;
+    scanningScore *=0.993;
 
     if (scrollLockout > 0) {
       scrollLockout = scrollLockout - 1;
@@ -383,13 +452,20 @@ export default class App extends Component {
     // and 13 characters on average for skimming. Jo's were about 5.5 and 6.5, and Celyn's were 6.5 and 8.
     // Clearly, any single number won't work. But the exact choice of number isn't super trivial, since the distributions for skimming and
     // scanning overlap heavily and have a similar right-skewed distribution, differing only in their overall mean.
-    // Busch 2012 "personalizes" this metric by... personalizing the percentage of text read or skimmed... instead of actually personalizing
+    // Buscher 2012 "personalizes" this metric by... personalizing the percentage of text read or skimmed... instead of actually personalizing
     // their reading/skimming detector. That won't work for our purposes (and honestly probably didn't work very well for theirs).
 
     // Instead, what we do is have the user skim about 1.5 pages of text, and read about 1 page of text. We track the average forward saccadic
     // distance for those texts, and average them. Then, we average those two numbers, and set that as our boundary between READ_FORWARD
     // and SKIM_FORWARD. This seems to work pretty well based on my testing, but is definitely ad-hoc. (But we should mention it as an improvement
-    // we made over Busch's SOTA, since their algorithm is pretty dumb.)
+    // we made over Buscher's SOTA, since their algorithm is pretty dumb.)
+
+    if (!fastForwardSaccades.length || !slowForwardSaccades.length) {
+      // No forward saccades at all were detected - this should hopefully only happen in development.
+      skimForwardCharacterSpaces = 8;
+      console.log("WARNING: calibration had no data and is exiting early. Setting boundary to 8 characters and continuing.");
+      return;
+    }
 
     let avgFast = this.arrayAverage(fastForwardSaccades);
     let avgSlow = this.arrayAverage(slowForwardSaccades);
@@ -425,7 +501,7 @@ export default class App extends Component {
       case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0);
       case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 0);
       case SHORT_REGRESSION: return this.changeDetectorScores(-5, -5, -12); // Short regressions are rare during scanning, but more common in other types.
-      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, 0);
+      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, -8);
       case RESET_JUMP: return this.changeDetectorScores(5, 5, -10); // Reading entire lines of text and then going to the next is rare in scanning.
       // case VERTICAL_JUMP: handled in if-statement above.
       case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 0);
@@ -458,6 +534,11 @@ export default class App extends Component {
     skimmingScore+=skimChange;
     scanningScore+=scanChange;
     //console.log(" reading: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore);
+
+    // In manual control we still update the model numbers in case that's useful for anything, but the actual state is set solely by user control.
+    if (manualControl) {
+      return this.state.currentMode;
+    }
 
     if (this.state.currentMode == READING || !this.state.currentMode) {
       // When we're in a mode, treat its score as 10 points higher. This hysteris reduces the frequency of mode shifts during ambiguous behaviors.
@@ -498,7 +579,7 @@ export default class App extends Component {
       }
       else if (skimmingScore > (scanningScore+10)) {
         this.setState({currentMode: SKIMMING});
-        scanningScore *= 1.3;
+        skimmingScore *= 1.3;
         return this.state.currentMode;
       }
     }
@@ -508,15 +589,22 @@ export default class App extends Component {
 
   handleKeyUp(event) {
 
-    if(event.ctrlKey && event.key === "1"){
-      console.log("Switching to mode 1!");
+    // Allow shortcuts to switch mode only when in manual control mode.
+    if (manualControl) {
+      if(event.ctrlKey && event.key === "1"){
+        this.setModeManually(READING);
+      }
+      else if(event.ctrlKey && event.key === "2"){
+        this.setModeManually(SKIMMING);
+      }
+      else if(event.ctrlKey && event.key === "3"){
+        this.setModeManually(SCANNING);
+      }
     }
-    else if(event.ctrlKey && event.key === "2"){
-      console.log("Switching mode 2!");
-    }
-    else if(event.ctrlKey && event.key === "3"){
-      console.log("Switching mode 3!");
-    }
+  }
+
+  setModeManually(newMode) {
+    this.setState({currentMode: newMode});
   }
 
   handleScroll(event) {
@@ -591,7 +679,7 @@ export default class App extends Component {
           return this.createReadingExample();
           break;
       case "TutorialManual":
-          return this.createTutorialManual();
+          return this.createTutorialManual(currentMode);
           break;
       case "FirstPage":
           return this.createFirstPage();
@@ -601,6 +689,15 @@ export default class App extends Component {
           break;
       case "ThirdPage":
           return this.createThirdPage();
+          break;
+      case "ManualInstructions":
+          return this.createManualInstructions();
+          break;
+      case "ManualTask":
+          return this.createManualTask(currentMode);
+          break;
+      case "ManualQuestions":
+          return this.createManualQuestions();
           break;
       case "FourthPage":
           return this.createFourthPage();
@@ -683,13 +780,33 @@ export default class App extends Component {
     />);
   }
 
-  createTutorialManual() {
+  createTutorialManual(currentMode) {
+    manualControl = true;
+
+    let readButtonFunc = () => {
+      this.setModeManually(READING);
+    }
+
+    let skimButtonFunc = () => {
+      this.setModeManually(SKIMMING);
+    }
+
+    let scanButtonFunc = () => {
+      this.setModeManually(SCANNING);
+    }
+
     return (<TutorialManual 
       onClick = {() => this.setState({page: "FirstPage"})}
+      currentMode = {currentMode}
+      readButtonFunc = {readButtonFunc}
+      skimButtonFunc = {skimButtonFunc}
+      scanButtonFunc = {scanButtonFunc}
     />);
   }
 
   createFirstPage() {
+    manualControl = false;
+
     return (<FirstPage 
       onClick = {() => this.firstPageOnClick()}
     />);
@@ -707,14 +824,14 @@ export default class App extends Component {
 
     const startTime = Date.now();
     endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
-    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS);
+    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ThirdPage");
     this.setState({page: "SecondPage"});
   }
 
-  endTaskIfOngoing() {
+  endTaskIfOngoing(nextPage) {
     console.log("5 minute timer has elapsed");
     if (inTask) {
-      this.setState({page: "ThirdPage"});
+      this.setState({page: nextPage});
       inTask = false;
     }
   }
@@ -733,6 +850,59 @@ export default class App extends Component {
 
   createThirdPage() {
     return (<ThirdPage
+      onClick = {() => this.setState({page:"ManualInstructions"})}
+    />);
+  }
+
+  createManualInstructions(currentMode) {
+    let onClickFunc = () => {
+      inTask = true;
+      this.setState({currentMode: READING});
+    
+      const startTime = Date.now();
+      endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
+      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ManualQuestions");
+      this.setState({page: "ManualTask"});
+    }
+
+    return (<ManualInstructions 
+      onClick = {onClickFunc}
+    />);
+  }
+
+  createManualTask(currentMode) {
+    manualControl = true;
+
+    let onClickFunc = () => {
+      inTask = false;
+      this.setState({page: "ManualQuestions"});
+    }
+
+    let readButtonFunc = () => {
+      this.setModeManually(READING);
+    }
+
+    let skimButtonFunc = () => {
+      this.setModeManually(SKIMMING);
+    }
+
+    let scanButtonFunc = () => {
+      this.setModeManually(SCANNING);
+    }
+
+    return (<ManualTask
+      onClick = {onClickFunc}
+      currentMode = {currentMode}
+      readButtonFunc = {readButtonFunc}
+      skimButtonFunc = {skimButtonFunc}
+      scanButtonFunc = {scanButtonFunc}
+    />);
+  }
+
+  createManualQuestions() {
+    manualControl = false;
+
+    return (<ManualQuestions
       onClick = {() => this.setState({page:"FourthPage"})}
     />);
   }
@@ -880,9 +1050,17 @@ export class ReadingExample extends Component {
 export class TutorialManual extends Component {
   render() {
 
+    var htmlText="";
 
-    // TODO: set this text dynamically.
-
+    if (this.props.currentMode == READING) {
+      htmlText = tutorialManualTextReading;
+    }
+    else if (this.props.currentMode == SKIMMING) {
+      htmlText = tutorialManualTextSkimming;
+    }
+    else {
+      htmlText = tutorialManualTextScanning;
+    }
 
 
     return (
@@ -891,26 +1069,18 @@ export class TutorialManual extends Component {
         <h2>Tutorial</h2>
 
         <div className="sidebar-buttons">
-          <button className='button flex-button' onClick={this.props.onClick} >
+          <button className='button flex-button' onClick={this.props.readButtonFunc} >
             Remove Formatting
           </button>
-          <button className='button flex-button' onClick={this.props.onClick} >
+          <button className='button flex-button' onClick={this.props.skimButtonFunc} >
             Highlight Content Words
           </button>
-          <button className='button flex-button' onClick={this.props.onClick} >
+          <button className='button flex-button' onClick={this.props.scanButtonFunc} >
             Highlight Sentences
           </button>
         </div>
         <div className='text'>
-          <p className='text'>
-            During one of your tasks, you will have control over the formatting of the text. In that task, a control bar will appear on the left-hand side
-            of the screen. You can click the buttons on this control to change the highlighting of the text. If you prefer, you can also use the shortcuts
-            Ctrl+1, Ctrl+2, and Ctrl+3 to change the formatting mode.
-            
-          </p>
-          <p className='text'>
-            Please try formatting this text now. When you're ready to continue, click "Next" to receive instructions about the first task.
-          </p>
+          <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
 
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -959,26 +1129,26 @@ export class SecondPage extends Component {
   // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
   render() {
 
-    var htmlText = "";
-
-    if (this.props.currentMode == READING) {
-      htmlText = testText;
-    }
-    else if (this.props.currentMode == SKIMMING) {
-      htmlText = testTextEdited;
-    }
-    else {
-      htmlText = testTextSentences;
-    }
+    let readingHtml = testText;
+    let skimmingHtml = testTextEdited;
+    let scanningHtml = testTextSentences;
+    
+    let readingClassName = (this.props.currentMode == READING ? "visible" : "");
+    let skimmingClassName = (this.props.currentMode == SKIMMING ? "visible" : "");
+    let scanningClassName =(this.props.currentMode == SCANNING ? "visible" : "");
 
     return (
       <div className="App">
         <div className="sidebar">
-          <Timer />
+          <Timer text="Current task: Find info about <b>weather and climate</b>." />
         </div>
         <h2>Ancient Egypt</h2>
-        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
-        <button className='button' onClick={this.props.onClick} >
+        <div className="relative">
+          <p className={'text overlapping-text ' + readingClassName} dangerouslySetInnerHTML={{__html: testText}}></p>
+          <p className={'text overlapping-text ' + skimmingClassName} dangerouslySetInnerHTML={{__html: testTextEdited}}></p>
+          <p className={'text overlapping-text ' + scanningClassName} dangerouslySetInnerHTML={{__html: testTextSentences}}></p>
+        </div>
+        <button className='button bottom-right' onClick={this.props.onClick} >
           Move to Questions
         </button>
       </div>
@@ -988,7 +1158,7 @@ export class SecondPage extends Component {
 
 export class ThirdPage extends Component {
 
-  // TODO: we REALLY need to do this in a programmatic way. Fix this once we're done with the demo.
+  // This is clearly something that would be nice to do programmatically, but I don't think that's the best use of development time for a one-off project.
   render() {
     return (
       <div className="App">
@@ -1075,6 +1245,169 @@ export class ThirdPage extends Component {
   }
 }
 
+export class ManualInstructions extends Component {
+
+  render() {
+    return (
+      <div className="App">
+        <h2>Task 2</h2>
+        <div className='text'>
+          <p className='text'>
+            Thank you for your participation in the first task. Please let the researcher know if you would like a break, or if you have any questions.
+          </p>
+          <p className='text'>
+            For this task, you will be roleplaying as a high schooler writing a report on historical events in 14th century China.
+            To do this, you will read a passage from a Chinese history textbook about the events of the 1200s and 1300s.
+            For your report, only some of the information in this passage will be useful:
+            you will need to find information on <b>events in the 1300s</b>. Events that occured in the 1200s can be ignored.
+            The text is quite long, so it is recommended to skim the text quickly to find the information you need.
+          </p>
+          <p className='text'>
+            Once you begin, you will have 5 minutes to read. After these 5 minutes are up, we'll ask you some questions about the passage.
+            You won't be able to go back to the passage once time is up, so do your best to read quickly and find the most relevant information.
+            These questions will ask only about events in the 1300s, so be on the lookout for those events.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Start
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ManualTask extends Component {
+
+  render() {
+
+    var htmlText = "";
+
+    if (this.props.currentMode == READING) {
+      htmlText = manualText;
+    }
+    else if (this.props.currentMode == SKIMMING) {
+      htmlText = manualTextSkimming;
+    }
+    else {
+      htmlText = manualTextScanning;
+    }
+
+    return (
+      <div className="App">
+        <div className="sidebar">
+          <Timer text="Current task: Find info about <b>events in the 1300s</b>." />
+        </div>
+
+        <div className="sidebar-buttons">
+          <button className='button flex-button' onClick={this.props.readButtonFunc} >
+            Remove Formatting
+          </button>
+          <button className='button flex-button' onClick={this.props.skimButtonFunc} >
+            Highlight Content Words
+          </button>
+          <button className='button flex-button' onClick={this.props.scanButtonFunc} >
+            Highlight Sentences
+          </button>
+        </div>
+
+        <h2>Task 2</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button' onClick={this.props.onClick} >
+          Move to Questions
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ManualQuestions extends Component {
+
+  render() {
+    return (
+      <div className="App">
+        1.  What actions did the popular risings of 1325 take?
+        <div className="field">
+          <input type="radio" id="manual-1a" name="manual-1" value="A"/>
+          <label htmlFor="manual-1a">Attacking Mongols as alien invaders</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-1b" name="manual-1" value="B"/>
+          <label htmlFor="manual-1b">Protesting abuse from the newly appointed Mongol bureaucrats</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-1c" name="manual-1" value="C"/>
+          <label htmlFor="manual-1c">Attacking the rich in general and distributing their possessions</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-1d" name="manual-1" value="D"/>
+          <label htmlFor="manual-1d">Calling for a permanent state of Mongol rule over China</label>
+        </div>
+        <br />
+
+        2. What characterized the soldiers of the Mongol military after 1320?
+        <div className="field">
+          <input type="radio" id="manual-2a" name="manual-2" value="A"/>
+          <label htmlFor="manual-2a">Mongol soldiers were more effective than Chinese soldiers due to advanced technology</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-2b" name="manual-2" value="B"/>
+          <label htmlFor="manual-2b">They were aggressive and commonly led revolts</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-2c" name="manual-2" value="C"/>
+          <label htmlFor="manual-2c">The Mongol military mostly consisted of conscripted Chinese soldiers</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-2d" name="manual-2" value="D"/>
+          <label htmlFor="manual-2d">Most soldiers had never seen war and did not know how to use their weapons</label>
+        </div>
+        <br />
+
+        3.  What occurred in response to the 1351 bursting of the dykes along the Yellow River?
+        <div className="field">
+          <input type="radio" id="manual-3a" name="manual-3" value="A"/>
+          <label htmlFor="manual-3a">The government summoned forced laborers to reconstruct the dykes</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-3b" name="manual-3" value="B"/>
+          <label htmlFor="manual-3b">Rebel armies repaired the dykes against the orders of the government</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-3c" name="manual-3" value="C"/>
+          <label htmlFor="manual-3c">The government’s quick response led to improved relations with the Chinese</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-3d" name="manual-3" value="D"/>
+          <label htmlFor="manual-3d">The region of Honan was mostly destroyed by the resulting floods</label>
+        </div>
+        <br />
+
+        4.  What relationship did the rebel Chu Yüan-chang have with the rich gentry?
+        <div className="field">
+          <input type="radio" id="manual-4a" name="manual-4" value="A"/>
+          <label htmlFor="manual-4a">He became weak and ineffective as a leader due to their bribes</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-4b" name="manual-4" value="B"/>
+          <label htmlFor="manual-4b">He slaughtered them indiscriminately while capturing cities</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-4c" name="manual-4" value="C"/>
+          <label htmlFor="manual-4c">He allowed them to join him en masse</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="manual-4d" name="manual-4" value="D"/>
+          <label htmlFor="manual-4d">He plundered their material wealth but allowed them to live in exile</label>
+        </div>
+        <br />
+        <button className='button' onClick={this.props.onClick} >
+          Submit
+        </button>
+      </div>
+      );
+  }
+}
+
 export class FourthPage extends Component {
 
   render() {
@@ -1089,7 +1422,7 @@ export class FourthPage extends Component {
   }
 }
 
-export function Timer() {
+export function Timer(props) {
 
   const initMinutes = ((TASK_TIMER_IN_MS / 1000 / 60) % 60)
   const initSeconds = ((TASK_TIMER_IN_MS / 1000) % 60)
@@ -1104,6 +1437,8 @@ export function Timer() {
     setSeconds(Math.floor((time / 1000) % 60));
   };
 
+  const text = props.text;
+
   // Minor issue here where the timer doesn't get updated on the first second, so it skips from 5:00 to 4:58. Not worth fixing.
 
   React.useEffect(() => {
@@ -1117,7 +1452,7 @@ export function Timer() {
       <div className="col-4">
         <div className="box">
           <p id="minute">Time remaining: {minutes}:{seconds < 10 ? "0" + seconds : seconds}</p>
-          <p> Current task: Find info about <b>weather and climate</b>.</p>
+          <p dangerouslySetInnerHTML={{__html: text}}></p>
         </div>
       </div>
     </div>

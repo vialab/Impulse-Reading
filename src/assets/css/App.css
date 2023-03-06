@@ -58,6 +58,30 @@ br
   margin-right: -25px;
 }
 
+.overlapping-text {
+  opacity:0;
+  position:absolute;
+  transition-property: all;
+  transition-duration: 1.5s;
+  padding-bottom: 150px; /* Needed to add more padding to the bottom of the page. */
+  transition-timing-function: linear; /* Usual caveats about linear interpolation being incorrect for perceptual colors apply, but this doesn't matter that much.*/
+}
+
+.relative {
+  position:relative;
+}
+
+
+.visible {
+  opacity:1;
+}
+
+.bottom-right {
+  position: fixed;
+  bottom:10px;
+  right:10px;
+}
+
 .narrow {
   width: 80%;
 }
