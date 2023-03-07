@@ -78,6 +78,8 @@ var skimForwardCharacterSpaces = 8; // This default gets changed to a calibrated
 
 var endTime = 0;
 
+var dataLoggingArray = [];
+
 export default class App extends Component {
 
   constructor(props) {
@@ -97,14 +99,16 @@ export default class App extends Component {
     document.addEventListener('scroll', this.handleScroll.bind(this));
 
     const fs = require("fs");
+    const autoReadingPath = './nlp_files/egyptian_climate.txt'; // Put this filename in a variable so we can enforce a log of the correct name
 
-    fs.readFile('./nlp_files/egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile(autoReadingPath, {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
       else {
         testText = data.toString();
         testText = testText.replace(/\n/g, "<br />");
+        logData("Text for auto mode: " + autoReadingPath, "FILENAME");
       }
     });
 
@@ -128,13 +132,16 @@ export default class App extends Component {
       }
     });
 
-    fs.readFile('./nlp_files/chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+    const manualReadingPath = './nlp_files/chinese_history.txt';
+
+    fs.readFile(manualReadingPath, {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
       else {
         manualText = data.toString();
         manualText = manualText.replace(/\n/g, "<br />");
+        logData("Text for manual mode: " + manualReadingPath, "FILENAME");
       }
     });
 
@@ -240,15 +247,8 @@ export default class App extends Component {
 
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
       const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
-
-      //console.log("transition type: " + transitionType);
-
-      //console.log("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine);
-      
-    
+      logData("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine + " transition type: " + transitionType, "SACCADE");
     }
-
-    
   }
 
   decayDetectors() {
@@ -307,6 +307,7 @@ export default class App extends Component {
     if (diffX <= NEW_FIXATION_PX && diffY <= NEW_FIXATION_PX) {
       // This is a new fixation, because all of the points in the window are close to each other.
       currentFixation = {maxX: maxX, minX: minX, maxY: maxY, minY: minY};
+      logData("Fixation maxX: " + maxX + " minX: " + minX + " maxY: " + maxY + " minY: " + minY, "FIXATION");
 
       // Calculate changeX and changeY
       if (lastFixation) {
@@ -451,7 +452,7 @@ export default class App extends Component {
     // Saccadic distance varies heavily by person. For example, my reading saccades are something like 11 characters on average for reading,
     // and 13 characters on average for skimming. Jo's were about 5.5 and 6.5, and Celyn's were 6.5 and 8.
     // Clearly, any single number won't work. But the exact choice of number isn't super trivial, since the distributions for skimming and
-    // scanning overlap heavily and have a similar right-skewed distribution, differing only in their overall mean.
+    // reading overlap heavily and have a similar right-skewed distribution, differing only in their overall mean.
     // Buscher 2012 "personalizes" this metric by... personalizing the percentage of text read or skimmed... instead of actually personalizing
     // their reading/skimming detector. That won't work for our purposes (and honestly probably didn't work very well for theirs).
 
@@ -463,7 +464,7 @@ export default class App extends Component {
     if (!fastForwardSaccades.length || !slowForwardSaccades.length) {
       // No forward saccades at all were detected - this should hopefully only happen in development.
       skimForwardCharacterSpaces = 8;
-      console.log("WARNING: calibration had no data and is exiting early. Setting boundary to 8 characters and continuing.");
+      logData("Warning: calibration had no data and is exiting early. Setting boundary to 8 characters and continuing.", "WARNING", true);
       return;
     }
 
@@ -477,10 +478,10 @@ export default class App extends Component {
     else {
       // If they didn't, we're kinda in trouble. Let's hope this doesn't happen very often in our actual study, and mark when it does happen.
       skimForwardCharacterSpaces = avgSlow + 0.5;
-      console.log("WARNING: calibration didn't find significant difference between skimming and reading.");
+      logData("Warning: calibration didn't find significant difference between skimming and reading.", "WARNING", true);
     }
     
-    console.log("Calibration complete - avg. fast: " + avgFast + ", avg slow: " + avgSlow + ", skim boundary: " + skimForwardCharacterSpaces);
+    logData("Calibration complete - avg. fast: " + avgFast + ", avg slow: " + avgSlow + ", skim boundary: " + skimForwardCharacterSpaces, "EVENT", true);
   }
 
   arrayAverage(list) {
@@ -533,7 +534,6 @@ export default class App extends Component {
     readingScore+=readChange;
     skimmingScore+=skimChange;
     scanningScore+=scanChange;
-    //console.log(" reading: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore);
 
     // In manual control we still update the model numbers in case that's useful for anything, but the actual state is set solely by user control.
     if (manualControl) {
@@ -546,6 +546,7 @@ export default class App extends Component {
 
         // React will call render(), which will update the user-facing HTML if needed.
         this.setState({currentMode: SKIMMING});
+        logData("Switching from reading to skimming", "MODE_SWITCH", true);
 
         // Make thrashing between different modes less likely; when we switch to a mode, temporarily boost its score.
         // We use a multiplicative score instead of an additive one so the momentum boost is less impactful
@@ -555,6 +556,7 @@ export default class App extends Component {
       }
       else if (scanningScore > (readingScore+10)) {
         this.setState({currentMode: SCANNING});
+        logData("Switching from reading to scanning", "MODE_SWITCH", true);
         scanningScore *= 1.3;
         return this.state.currentMode;
       }
@@ -562,11 +564,13 @@ export default class App extends Component {
     else if (this.state.currentMode == SKIMMING) {
       if (readingScore > (skimmingScore+10)) {
         this.setState({currentMode: READING});
+        logData("Switching from skimming to reading", "MODE_SWITCH", true);
         readingScore *= 1.3;
         return this.state.currentMode;
       }
       else if (scanningScore > (skimmingScore+10)) {
         this.setState({currentMode: SCANNING});
+        logData("Switching from skimming to scanning", "MODE_SWITCH", true);
         scanningScore *= 1.3;
         return this.state.currentMode;
       }
@@ -574,11 +578,13 @@ export default class App extends Component {
     else if (this.state.currentMode == SCANNING) {
       if (readingScore > (scanningScore+10)) {
         this.setState({currentMode: READING});
+        logData("Switching from scanning to reading", "MODE_SWITCH", true);
         readingScore *= 1.3;
         return this.state.currentMode;
       }
       else if (skimmingScore > (scanningScore+10)) {
         this.setState({currentMode: SKIMMING});
+        logData("Switching from scanning to skimming", "MODE_SWITCH", true);
         skimmingScore *= 1.3;
         return this.state.currentMode;
       }
@@ -605,6 +611,7 @@ export default class App extends Component {
 
   setModeManually(newMode) {
     this.setState({currentMode: newMode});
+    logData("Manually setting mode to: " + newMode, "MODE_SWITCH", true);
   }
 
   handleScroll(event) {
@@ -631,7 +638,7 @@ export default class App extends Component {
     // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
     scrollLockout = Math.floor(REFRESH_RATE / 3);
 
-    //console.log("Scroll event. Scanning detector change: " + scanningDetectorChange);
+    logData("Scroll event. Scanning detector change: " + scanningDetectorChange, "SCROLL");
   }
 
 
@@ -707,11 +714,16 @@ export default class App extends Component {
     };
   }
 
+  setPage(page) {
+    this.setState({page: page});
+    logData("Moving to page: " + page, "PAGE");
+  }
+
   createTutorialSkimming() {
 
     // Once the user clicks Next to go to the skimming example, we need to know we should start keeping track of forward saccades for calibration.
     let startExampleFunc = () => {
-      this.setState({page: "SkimmingExample"});
+      this.setPage("SkimmingExample");
       isTakingTutorialFast = true;
     };
 
@@ -724,7 +736,7 @@ export default class App extends Component {
     
     // After the user clicks Next and leaves the skimming example, we should stop tracking forward saccades until the next chance for calibration.
     let endExampleFunc = () => {
-      this.setState({page: "TutorialScanning"});
+      this.setPage("TutorialScanning");
       isTakingTutorialFast = false;
     };
 
@@ -735,7 +747,7 @@ export default class App extends Component {
 
   createTutorialScanning() {
     let startExampleFunc = () => {
-      this.setState({page: "ScanningExample"});
+      this.setPage("ScanningExample");
       isTakingTutorialFast = true;
     };
 
@@ -746,7 +758,7 @@ export default class App extends Component {
 
   createScanningExample() {
     let endExampleFunc = () => {
-      this.setState({page: "TutorialReading"});
+      this.setPage("TutorialReading");
       isTakingTutorialFast = false;
     };
 
@@ -757,7 +769,7 @@ export default class App extends Component {
 
   createTutorialReading() {
     let startExampleFunc = () => {
-      this.setState({page: "ReadingExample"});
+      this.setPage("ReadingExample");
       isTakingTutorialSlow = true;
     };
 
@@ -768,7 +780,7 @@ export default class App extends Component {
 
   createReadingExample() {
     let endExampleFunc = () => {
-      this.setState({page: "TutorialManual"});
+      this.setPage("TutorialManual");
       isTakingTutorialSlow = false;
 
       // At this point, we've received all our calibration data. Let's calculate the result of that calibration now.
@@ -796,7 +808,7 @@ export default class App extends Component {
     }
 
     return (<TutorialManual 
-      onClick = {() => this.setState({page: "FirstPage"})}
+      onClick = {() => this.setPage("FirstPage")}
       currentMode = {currentMode}
       readButtonFunc = {readButtonFunc}
       skimButtonFunc = {skimButtonFunc}
@@ -825,13 +837,13 @@ export default class App extends Component {
     const startTime = Date.now();
     endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
     setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ThirdPage");
-    this.setState({page: "SecondPage"});
+    this.setPage("SecondPage");
   }
 
   endTaskIfOngoing(nextPage) {
-    console.log("5 minute timer has elapsed");
     if (inTask) {
-      this.setState({page: nextPage});
+      logData("5 minute timer has elapsed and task is ending", "EVENT", true);
+      this.setPage(nextPage);
       inTask = false;
     }
   }
@@ -845,12 +857,28 @@ export default class App extends Component {
 
   secondPageOnClick() {
     inTask = false;
-    this.setState({page: "ThirdPage"});
+    this.setPage("ThirdPage");
   }
 
   createThirdPage() {
+
+    const nextPageFunc = () => {
+
+      const answerOne = document.querySelector('input[name="chinese-1"]:checked')?.value;
+      const answerTwo = document.querySelector('input[name="chinese-2"]:checked')?.value;
+      const answerThree = document.querySelector('input[name="chinese-3"]:checked')?.value;
+      const answerFour = document.querySelector('input[name="chinese-4"]:checked')?.value;
+
+      logData("Automatic condition, question 1 user answered: " + answerOne, "QUESTION", true);
+      logData("Automatic condition, question 2 user answered: " + answerTwo, "QUESTION", true);
+      logData("Automatic condition, question 3 user answered: " + answerThree, "QUESTION", true);
+      logData("Automatic condition, question 4 user answered: " + answerFour, "QUESTION", true);
+
+      this.setPage("ManualInstructions");
+    }
+
     return (<ThirdPage
-      onClick = {() => this.setState({page:"ManualInstructions"})}
+      onClick = {nextPageFunc}
     />);
   }
 
@@ -862,7 +890,7 @@ export default class App extends Component {
       const startTime = Date.now();
       endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
       setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ManualQuestions");
-      this.setState({page: "ManualTask"});
+      this.setPage("ManualTask");
     }
 
     return (<ManualInstructions 
@@ -875,7 +903,7 @@ export default class App extends Component {
 
     let onClickFunc = () => {
       inTask = false;
-      this.setState({page: "ManualQuestions"});
+      this.setPage("ManualQuestions");
     }
 
     let readButtonFunc = () => {
@@ -902,14 +930,32 @@ export default class App extends Component {
   createManualQuestions() {
     manualControl = false;
 
+    const nextPageFunc = () => {
+
+      const answerOne = document.querySelector('input[name="manual-1"]:checked')?.value;
+      const answerTwo = document.querySelector('input[name="manual-2"]:checked')?.value;
+      const answerThree = document.querySelector('input[name="manual-3"]:checked')?.value;
+      const answerFour = document.querySelector('input[name="manual-4"]:checked')?.value;
+
+      logData("Manual condition, question 1 user answered: " + answerOne, "QUESTION", true);
+      logData("Manual condition, question 2 user answered: " + answerTwo, "QUESTION", true);
+      logData("Manual condition, question 3 user answered: " + answerThree, "QUESTION", true);
+      logData("Manual condition, question 4 user answered: " + answerFour, "QUESTION", true);
+
+      this.setPage("FourthPage");
+    }
+
     return (<ManualQuestions
-      onClick = {() => this.setState({page:"FourthPage"})}
+      onClick = {nextPageFunc}
     />);
   }
 
   createFourthPage() {
+    // This is the end of the experiment - let's write the log file now.
+    writeLogFile();
+
     return (<FourthPage
-      onClick = {() => this.setState({page:"FirstPage"})}
+      onClick = {() => this.setPage("FirstPage")}
     />);
   }
 }
@@ -1457,4 +1503,42 @@ export function Timer(props) {
       </div>
     </div>
   );
+}
+
+export function logData(data, dataType = "GENERIC", consolePrint = false) {
+  //format:
+  //1519211809934 FIXATION: my message here
+
+  const timestamp = Date.now();
+  const logLine = timestamp + " " + dataType + ": " + data;
+  dataLoggingArray.push(logLine);
+
+  if (consolePrint) {
+    console.log(data);
+  }
+}
+
+export function writeLogFile() {
+  // copy/pasted from first result on stackoverflow
+  const fs = require("fs");
+
+  const fileName = "./log_files/logfile_" + Date.now() + ".txt"
+  const writeStream = fs.createWriteStream(fileName);
+  const pathName = writeStream.path;
+    
+  // write each value of the array on the file breaking line
+  dataLoggingArray.forEach(value => writeStream.write(`${value}\n`));
+
+  // the finish event is emitted when all data has been flushed from the stream
+  writeStream.on('finish', () => {
+     console.log(`wrote all the array data to file ${pathName}`);
+  });
+
+  // handle the errors on the write process
+  writeStream.on('error', (err) => {
+      console.error(`There is an error writing the file ${pathName} => ${err}`)
+  });
+
+  // close the stream
+  writeStream.end();
 }
