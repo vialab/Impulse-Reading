@@ -1,7 +1,10 @@
           <p className='text'>
-            <span class="low-contrast">During one of your tasks, you will have control over the formatting of the text. In that task, a control bar will appear on the left-hand side of the screen. <span class="impulse-fixation">You can click the buttons on this control to change the highlighting of the text.</span> If you prefer, you can also use the shortcuts Ctrl+1, Ctrl+2, and Ctrl+3 to change the formatting mode.</span>
-            
+            <span class="highlight-one">During one of your tasks, you will have control over the formatting of the text.</span> <span class="highlight-two">In that task, a control bar will appear on the left-hand side of the screen.</span> <span class="highlight-three">You can click the buttons on this control to change the highlighting of the text.</span> <span class="highlight-four">If you prefer, you can also use the shortcuts Ctrl+1, Ctrl+2, and Ctrl+3 to change the formatting mode.</span>
+
+
           </p>
           <p className='text'>
-            Please try formatting this text now. When you're ready to continue, click "Next" to receive instructions about the first task.
+            
+
+		<span class="highlight-one">Please try formatting this text now.</span> <span class="highlight-two">When you're ready to continue, click "Next" to receive instructions about the first task.</span>
           </p>

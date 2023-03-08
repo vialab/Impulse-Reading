@@ -1,6 +1,0 @@
-During one of your tasks, you will have control over the formatting of the text. In that task, a control bar will appear on the left-hand side
-            of the screen. You can click the buttons on this control to change the highlighting of the text. If you prefer, you can also use the shortcuts
-            Ctrl+1, Ctrl+2, and Ctrl+3 to change the formatting mode.
-
-
-Please try formatting this text now. When you're ready to continue, click "Next" to receive instructions about the first task.
