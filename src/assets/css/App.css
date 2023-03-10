@@ -62,7 +62,7 @@ br
   opacity:0;
   position:absolute;
   transition-property: all;
-  transition-duration: 1.5s;
+  transition-duration: 1.1s;
   padding-bottom: 150px; /* Needed to add more padding to the bottom of the page. */
   transition-timing-function: linear; /* Usual caveats about linear interpolation being incorrect for perceptual colors apply, but this doesn't matter that much.*/
 }
