@@ -54,9 +54,9 @@ var TASK_TIMER_IN_MS = 300000
 var CHARACTER_WIDTH = 15;
 var LINE_HEIGHT = 39;
 
-var testText = "test text";
-var testTextEdited = "test text edited";
-var testTextSentences = "test text sentences";
+var autoText = "test text";
+var autoTextSkimming = "test text edited";
+var autoTextScanning = "test text sentences";
 
 var manualText;
 var manualTextSkimming;
@@ -106,8 +106,8 @@ export default class App extends Component {
         return console.error(err);
       }
       else {
-        testText = data.toString();
-        testText = testText.replace(/\n/g, "<br />");
+        autoText = data.toString();
+        autoText = autoText.replace(/\n/g, "<br />");
         logData("Text for auto mode: " + autoReadingPath, "FILENAME");
       }
     });
@@ -117,8 +117,8 @@ export default class App extends Component {
         return console.error(err);
       }
       else {
-        testTextEdited = data.toString();
-        testTextEdited = testTextEdited.replace(/\n/g, "<br />");
+        autoTextSkimming = data.toString();
+        autoTextSkimming = autoTextSkimming.replace(/\n/g, "<br />");
       }
     });
 
@@ -127,8 +127,8 @@ export default class App extends Component {
         return console.error(err);
       }
       else {
-        testTextSentences = data.toString();
-        testTextSentences = testTextSentences.replace(/\n/g, "<br />");
+        autoTextScanning = data.toString();
+        autoTextScanning = autoTextScanning.replace(/\n/g, "<br />");
       }
     });
 
@@ -688,14 +688,14 @@ export default class App extends Component {
       case "TutorialManual":
           return this.createTutorialManual(currentMode);
           break;
-      case "FirstPage":
-          return this.createFirstPage();
+      case "AutoIntro":
+          return this.createAutoIntro();
           break;
-      case "SecondPage":
-          return this.createSecondPage(currentMode);
+      case "AutoTask":
+          return this.createAutoTask(currentMode);
           break;
-      case "ThirdPage":
-          return this.createThirdPage();
+      case "AutoQuestions":
+          return this.createAutoQuestions();
           break;
       case "ManualInstructions":
           return this.createManualInstructions();
@@ -706,8 +706,8 @@ export default class App extends Component {
       case "ManualQuestions":
           return this.createManualQuestions();
           break;
-      case "FourthPage":
-          return this.createFourthPage();
+      case "EndPage":
+          return this.createEndPage();
           break;
       default:
           return this.createTutorialSkimming();
@@ -808,7 +808,7 @@ export default class App extends Component {
     }
 
     return (<TutorialManual 
-      onClick = {() => this.setPage("FirstPage")}
+      onClick = {() => this.setPage("AutoIntro")}
       currentMode = {currentMode}
       readButtonFunc = {readButtonFunc}
       skimButtonFunc = {skimButtonFunc}
@@ -816,15 +816,15 @@ export default class App extends Component {
     />);
   }
 
-  createFirstPage() {
+  createAutoIntro() {
     manualControl = false;
 
-    return (<FirstPage 
-      onClick = {() => this.firstPageOnClick()}
+    return (<AutoIntro 
+      onClick = {() => this.autoIntroOnClick()}
     />);
   }
 
-  firstPageOnClick() {
+  autoIntroOnClick() {
     inTask = true;
     
     // Always start the task in reading mode with a decent lead, so the user gets at least a couple seconds of unformatted text.
@@ -836,8 +836,8 @@ export default class App extends Component {
 
     const startTime = Date.now();
     endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
-    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ThirdPage");
-    this.setPage("SecondPage");
+    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "AutoQuestions");
+    this.setPage("AutoTask");
   }
 
   endTaskIfOngoing(nextPage) {
@@ -848,19 +848,19 @@ export default class App extends Component {
     }
   }
 
-  createSecondPage(currentMode) {
-    return (<SecondPage
-      onClick = {() => this.secondPageOnClick()}
+  createAutoTask(currentMode) {
+    return (<AutoTask
+      onClick = {() => this.autoTaskOnClick()}
       currentMode = {currentMode}
     />);
   }
 
-  secondPageOnClick() {
+  autoTaskOnClick() {
     inTask = false;
-    this.setPage("ThirdPage");
+    this.setPage("AutoQuestions");
   }
 
-  createThirdPage() {
+  createAutoQuestions() {
 
     const nextPageFunc = () => {
 
@@ -877,7 +877,7 @@ export default class App extends Component {
       this.setPage("ManualInstructions");
     }
 
-    return (<ThirdPage
+    return (<AutoQuestions
       onClick = {nextPageFunc}
     />);
   }
@@ -942,7 +942,7 @@ export default class App extends Component {
       logData("Manual condition, question 3 user answered: " + answerThree, "QUESTION", true);
       logData("Manual condition, question 4 user answered: " + answerFour, "QUESTION", true);
 
-      this.setPage("FourthPage");
+      this.setPage("EndPage");
     }
 
     return (<ManualQuestions
@@ -950,12 +950,12 @@ export default class App extends Component {
     />);
   }
 
-  createFourthPage() {
+  createEndPage() {
     // This is the end of the experiment - let's write the log file now.
     writeLogFile();
 
-    return (<FourthPage
-      onClick = {() => this.setPage("FirstPage")}
+    return (<EndPage
+      onClick = {() => this.setPage("AutoIntro")}
     />);
   }
 }
@@ -1139,7 +1139,7 @@ export class TutorialManual extends Component {
 
 
 
-export class FirstPage extends Component {
+export class AutoIntro extends Component {
 
   render() {
     return (
@@ -1169,14 +1169,14 @@ export class FirstPage extends Component {
   }
 }
 
-export class SecondPage extends Component {
+export class AutoTask extends Component {
 
   // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
   render() {
 
-    let readingHtml = testText;
-    let skimmingHtml = testTextEdited;
-    let scanningHtml = testTextSentences;
+    let readingHtml = autoText;
+    let skimmingHtml = autoTextSkimming;
+    let scanningHtml = autoTextScanning;
     
     let readingClassName = (this.props.currentMode == READING ? "visible" : "");
     let skimmingClassName = (this.props.currentMode == SKIMMING ? "visible" : "");
@@ -1189,9 +1189,9 @@ export class SecondPage extends Component {
         </div>
         <h2>Ancient Egypt</h2>
         <div className="relative">
-          <p className={'text overlapping-text ' + readingClassName} dangerouslySetInnerHTML={{__html: testText}}></p>
-          <p className={'text overlapping-text ' + skimmingClassName} dangerouslySetInnerHTML={{__html: testTextEdited}}></p>
-          <p className={'text overlapping-text ' + scanningClassName} dangerouslySetInnerHTML={{__html: testTextSentences}}></p>
+          <p className={'text overlapping-text ' + readingClassName} dangerouslySetInnerHTML={{__html: autoText}}></p>
+          <p className={'text overlapping-text ' + skimmingClassName} dangerouslySetInnerHTML={{__html: autoTextSkimming}}></p>
+          <p className={'text overlapping-text ' + scanningClassName} dangerouslySetInnerHTML={{__html: autoTextScanning}}></p>
         </div>
         <button className='button bottom-right' onClick={this.props.onClick} >
           Move to Questions
@@ -1201,7 +1201,7 @@ export class SecondPage extends Component {
   }
 }
 
-export class ThirdPage extends Component {
+export class AutoQuestions extends Component {
 
   // This is clearly something that would be nice to do programmatically, but I don't think that's the best use of development time for a one-off project.
   render() {
@@ -1453,7 +1453,7 @@ export class ManualQuestions extends Component {
   }
 }
 
-export class FourthPage extends Component {
+export class EndPage extends Component {
 
   render() {
     return (
