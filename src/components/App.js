@@ -1071,6 +1071,10 @@ export class AutoQuestions extends Component {
   render() {
     return (
       <div className="App">
+        <h2>Questions</h2>
+        <p className='text'>
+          Time is up for the first task. Before we move on, please answer the following comprehension questions about the passage you just read.
+        </p>
         1.  What categorized the Egyptian climate in Predynastic and Early Dynastic times?
         <div className="field">
           <input type="radio" id="chinese-1a" name="chinese-1" value="A"/>
@@ -1231,6 +1235,10 @@ export class ManualQuestions extends Component {
   render() {
     return (
       <div className="App">
+        <h2>Questions</h2>
+        <p className='text'>
+          Time is up for the second task. Before we move on, please answer the following comprehension questions about the passage you just read.
+        </p>
         1.  What actions did the popular risings of 1325 take?
         <div className="field">
           <input type="radio" id="manual-1a" name="manual-1" value="A"/>
