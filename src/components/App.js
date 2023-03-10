@@ -503,7 +503,7 @@ export default class App extends Component {
     // This is a relatively minor portion of the scanning update in most cases, but
     // it allows us to set scanning while the user is scrolling quickly over the whole document.
     // Cap it at a maximum constant so that the scores don't go to extremes when scrolling over the entire document.
-    if(scanningScore < 100) {
+    if(scanningScore < 80) {
       var scanningDetectorChange = scrollDifferenceInPx / 40;
       this.changeDetectorScores(0, 0, scanningDetectorChange);
       logData("Scroll event. Scanning detector change: " + scanningDetectorChange, "SCROLL");
