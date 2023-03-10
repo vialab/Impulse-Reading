@@ -54,9 +54,9 @@ var TASK_TIMER_IN_MS = 300000
 var CHARACTER_WIDTH = 15;
 var LINE_HEIGHT = 39;
 
-var autoText = "test text";
-var autoTextSkimming = "test text edited";
-var autoTextScanning = "test text sentences";
+var autoText;
+var autoTextSkimming;
+var autoTextScanning;
 
 var manualText;
 var manualTextSkimming;
@@ -85,7 +85,6 @@ export default class App extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      gazeCursorEnabled: true,
       page: "TutorialSkimming",
       currentMode: READING
     }
@@ -98,132 +97,7 @@ export default class App extends Component {
     document.addEventListener('keydown', this.handleKeyUp.bind(this));
     document.addEventListener('scroll', this.handleScroll.bind(this));
 
-    const fs = require("fs");
-    const autoReadingPath = './nlp_files/egyptian_climate.txt'; // Put this filename in a variable so we can enforce a log of the correct name
-
-    fs.readFile(autoReadingPath, {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        autoText = data.toString();
-        autoText = autoText.replace(/\n/g, "<br />");
-        logData("Text for auto mode: " + autoReadingPath, "FILENAME");
-      }
-    });
-
-    fs.readFile('./nlp_files/edited_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        autoTextSkimming = data.toString();
-        autoTextSkimming = autoTextSkimming.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/fadeout_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        autoTextScanning = data.toString();
-        autoTextScanning = autoTextScanning.replace(/\n/g, "<br />");
-      }
-    });
-
-    const manualReadingPath = './nlp_files/chinese_history.txt';
-
-    fs.readFile(manualReadingPath, {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        manualText = data.toString();
-        manualText = manualText.replace(/\n/g, "<br />");
-        logData("Text for manual mode: " + manualReadingPath, "FILENAME");
-      }
-    });
-
-    fs.readFile('./nlp_files/edited_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        manualTextSkimming = data.toString();
-        manualTextSkimming = manualTextSkimming.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/fadeout_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        manualTextScanning = data.toString();
-        manualTextScanning = manualTextScanning.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/reading.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialTextReading = data.toString();
-        tutorialTextReading = tutorialTextReading.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/skimming.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialTextSkimming = data.toString();
-        tutorialTextSkimming = tutorialTextSkimming.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/scanning.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialTextScanning = data.toString();
-        tutorialTextScanning = tutorialTextScanning.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/manual_reading.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialManualTextReading = data.toString();
-        tutorialManualTextReading = tutorialManualTextReading.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/manual_skimming.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialManualTextSkimming = data.toString();
-        tutorialManualTextSkimming = tutorialManualTextSkimming.replace(/\n/g, "<br />");
-      }
-    });
-
-    fs.readFile('./nlp_files/tutorial_text/manual_scanning.txt', {encoding: 'utf8'}, function (err, data) {
-      if (err) {
-        return console.error(err);
-      }
-      else {
-        tutorialManualTextScanning = data.toString();
-        tutorialManualTextScanning = tutorialManualTextScanning.replace(/\n/g, "<br />");
-      }
-    });
+    loadTextFiles();
 
     ipcRenderer.on('gaze-pos', (event, arg) => {
       this.mainLoop(arg.x, arg.y);
@@ -265,8 +139,6 @@ export default class App extends Component {
   }
 
   checkFixation(x, y) {
-
-
     if (scrollLockout > 0) {
       this.endCurrentFixation();
 
@@ -333,11 +205,11 @@ export default class App extends Component {
     if (!withinFixation) {
 
       // This point was outside the fixation, but it might be an outlier.
-      // If any point in the window is okay, the fixation is okay. Treat the others as outliers.
+      // If any single point in the window is within the bounds of the fixation, the fixation is valid. Treat the others as outliers.
       const isPointOkay = (point) => this.checkPoint(point.x, point.y);
-      const isWindowOkay = pointsWindow.some(isPointOkay);
+      const windowIsValid = pointsWindow.some(isPointOkay);
 
-      if (!isWindowOkay) {
+      if (!windowIsValid) {
         // This fixation has ended.
         this.endCurrentFixation();
 
@@ -353,7 +225,7 @@ export default class App extends Component {
     else {
       // This point was in the current fixation. Update this fixation, and return null because there's no new fixation.
 
-      //This algorithm is really dumb, isn't it? comes straight from the paper, but it has no concept of outliers if you happen to be
+      // This algorithm is really dumb, isn't it? comes straight from Buscher 2008, but it has no concept of outliers if you happen to be
       // within 50 px of the current fixation, meaning that a single outlier can peg the window significantly off of where it should be.
       // We probably could improve this, but we don't really care that much about every single saccade/fixation being 100% accurate.
 
@@ -382,8 +254,6 @@ export default class App extends Component {
       return null;
     }
   }
-
-
 
   classifyTransition(changeX, changeY) {
     // At this point we have transitioned from our old fixation to the new one. Classify the type of transition based on its angle and distance.
@@ -449,6 +319,8 @@ export default class App extends Component {
   }
 
   calculateForwardSaccadeLength() {
+    // This function implements a simple but AFAICT novel technique for calibrating saccadic distances.
+
     // Saccadic distance varies heavily by person. For example, my reading saccades are something like 11 characters on average for reading,
     // and 13 characters on average for skimming. Jo's were about 5.5 and 6.5, and Celyn's were 6.5 and 8.
     // Clearly, any single number won't work. But the exact choice of number isn't super trivial, since the distributions for skimming and
@@ -500,7 +372,7 @@ export default class App extends Component {
     switch(transitionType) {
       case READ_FORWARD: return this.changeDetectorScores(10, 5, 0);
       case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0);
-      case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 0);
+      case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 5);
       case SHORT_REGRESSION: return this.changeDetectorScores(-5, -5, -12); // Short regressions are rare during scanning, but more common in other types.
       case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, -8);
       case RESET_JUMP: return this.changeDetectorScores(5, 5, -10); // Reading entire lines of text and then going to the next is rare in scanning.
@@ -511,16 +383,13 @@ export default class App extends Component {
   }
 
   updateScanningDetector(transitionType, changeX, changeY) {
-    // If there's been a lot of reset jumps in the last little bit, we're probably reading or skimming.
-    // If we have a large vertical jump, or several vertical jumps in a row, we're more likely to be scanning.
     // "one of the most expressive measures for relevance is coherently read text length, that
     // is, the length of text the user has read line by line without skipping any part"
-
-    // Maintain a 10 second window, and compare the number of lines that have been skipped versus read in those seconds. switch on a percentage.
-    // Maintain a virtual window with exponential falloff (same as other scores). Estimate number of lines that have been skipped versus read. switch on a score.
+    // -Buscher 2012. This is underdefined for our purposes since we're continous and the barrier between "skipping" and not is squishy.
+    // We estimate this by simply incrementing our scanning detector on saccades that skip over or regress past multiple lines at once.
 
     // Scale the impact of this saccade by the amount of text skipped by this saccade.
-    // Because we didn't hit one of the other types of detectors, changeY will be at least ~2 lines skipped.
+    // Because we didn't hit one of the other types of detectors, changeY will be at least 2.5 lines skipped.
 
     var scoreChange = Math.abs(changeY) * 5;
     if (scoreChange > 25) {
@@ -540,11 +409,12 @@ export default class App extends Component {
       return this.state.currentMode;
     }
 
+    const currentModeBonus = 10;
+
     if (this.state.currentMode == READING || !this.state.currentMode) {
       // When we're in a mode, treat its score as 10 points higher. This hysteris reduces the frequency of mode shifts during ambiguous behaviors.
-      if (skimmingScore > (readingScore+10)) {
+      if (skimmingScore > (readingScore + currentModeBonus)) {
 
-        // React will call render(), which will update the user-facing HTML if needed.
         this.setState({currentMode: SKIMMING});
         logData("Switching from reading to skimming", "MODE_SWITCH", true);
 
@@ -554,7 +424,7 @@ export default class App extends Component {
         skimmingScore *= 1.3;
         return this.state.currentMode;
       }
-      else if (scanningScore > (readingScore+10)) {
+      else if (scanningScore > (readingScore + currentModeBonus)) {
         this.setState({currentMode: SCANNING});
         logData("Switching from reading to scanning", "MODE_SWITCH", true);
         scanningScore *= 1.3;
@@ -562,13 +432,13 @@ export default class App extends Component {
       }
     }
     else if (this.state.currentMode == SKIMMING) {
-      if (readingScore > (skimmingScore+10)) {
+      if (readingScore > (skimmingScore + currentModeBonus)) {
         this.setState({currentMode: READING});
         logData("Switching from skimming to reading", "MODE_SWITCH", true);
         readingScore *= 1.3;
         return this.state.currentMode;
       }
-      else if (scanningScore > (skimmingScore+10)) {
+      else if (scanningScore > (skimmingScore + currentModeBonus)) {
         this.setState({currentMode: SCANNING});
         logData("Switching from skimming to scanning", "MODE_SWITCH", true);
         scanningScore *= 1.3;
@@ -576,13 +446,13 @@ export default class App extends Component {
       }
     }
     else if (this.state.currentMode == SCANNING) {
-      if (readingScore > (scanningScore+10)) {
+      if (readingScore > (scanningScore + currentModeBonus)) {
         this.setState({currentMode: READING});
         logData("Switching from scanning to reading", "MODE_SWITCH", true);
         readingScore *= 1.3;
         return this.state.currentMode;
       }
-      else if (skimmingScore > (scanningScore+10)) {
+      else if (skimmingScore > (scanningScore + currentModeBonus)) {
         this.setState({currentMode: SKIMMING});
         logData("Switching from scanning to skimming", "MODE_SWITCH", true);
         skimmingScore *= 1.3;
@@ -616,8 +486,11 @@ export default class App extends Component {
 
   handleScroll(event) {
 
-    var last = lastScrollPosition;
+    // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
+    scrollLockout = Math.floor(REFRESH_RATE / 3);
 
+    // Calculate the distance scrolled and increment the scanning detector, as fast scrolling is a sign of scanning.
+    var last = lastScrollPosition;
     var doc = document.documentElement;
     var newScrollPosition = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
 
@@ -633,12 +506,11 @@ export default class App extends Component {
     if(scanningScore < 100) {
       var scanningDetectorChange = scrollDifferenceInPx / 40;
       this.changeDetectorScores(0, 0, scanningDetectorChange);
+      logData("Scroll event. Scanning detector change: " + scanningDetectorChange, "SCROLL");
     }
-    
-    // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
-    scrollLockout = Math.floor(REFRESH_RATE / 3);
-
-    logData("Scroll event. Scanning detector change: " + scanningDetectorChange, "SCROLL");
+    else {
+      logData("Scroll event. Scanning score is already at maximum.", "SCROLL");
+    }
   }
 
 
@@ -655,7 +527,6 @@ export default class App extends Component {
     return (
       <div className="App" key={this.state.activeDemo}>
         <header className="App-header">
-          <div id="gazeCursor"></div>
         </header>
         <div>
           {this.getPage(this.state.page, this.state.currentMode)}
@@ -963,7 +834,6 @@ export default class App extends Component {
 export class TutorialSkimming extends Component {
   render() {
     return (
-
       <div className="App">
         <h2>Tutorial</h2>
         <div className='text'>
@@ -1031,8 +901,6 @@ export class TutorialScanning extends Component {
 }
 
 export class ScanningExample extends Component {
-
-  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
   render() {
 
     var htmlText = tutorialTextScanning;
@@ -1074,8 +942,6 @@ export class TutorialReading extends Component {
 }
 
 export class ReadingExample extends Component {
-
-  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
   render() {
 
     var htmlText = tutorialTextReading;
@@ -1140,7 +1006,6 @@ export class TutorialManual extends Component {
 
 
 export class AutoIntro extends Component {
-
   render() {
     return (
 
@@ -1170,8 +1035,6 @@ export class AutoIntro extends Component {
 }
 
 export class AutoTask extends Component {
-
-  // If this code is ever used for a user-facing application, we need to sanitize inputs for dangerouslySetInnerHTML().
   render() {
 
     let readingHtml = autoText;
@@ -1203,7 +1066,8 @@ export class AutoTask extends Component {
 
 export class AutoQuestions extends Component {
 
-  // This is clearly something that would be nice to do programmatically, but I don't think that's the best use of development time for a one-off project.
+  // Creating ids/names clearly something that would be nice to do programmatically with a separate data file,
+  // but I don't think that's the best use of development time for a one-off project.
   render() {
     return (
       <div className="App">
@@ -1291,7 +1155,6 @@ export class AutoQuestions extends Component {
 }
 
 export class ManualInstructions extends Component {
-
   render() {
     return (
       <div className="App">
@@ -1322,7 +1185,6 @@ export class ManualInstructions extends Component {
 }
 
 export class ManualTask extends Component {
-
   render() {
 
     var htmlText = "";
@@ -1366,7 +1228,6 @@ export class ManualTask extends Component {
 }
 
 export class ManualQuestions extends Component {
-
   render() {
     return (
       <div className="App">
@@ -1454,7 +1315,6 @@ export class ManualQuestions extends Component {
 }
 
 export class EndPage extends Component {
-
   render() {
     return (
       <div className="App">
@@ -1485,7 +1345,6 @@ export function Timer(props) {
   const text = props.text;
 
   // Minor issue here where the timer doesn't get updated on the first second, so it skips from 5:00 to 4:58. Not worth fixing.
-
   React.useEffect(() => {
     const interval = setInterval(() => getTime(endTime), 1000);
 
@@ -1540,4 +1399,133 @@ export function writeLogFile() {
 
   // close the stream
   writeStream.end();
+}
+
+export function loadTextFiles() {
+  const fs = require("fs");
+    const autoReadingPath = './nlp_files/egyptian_climate.txt'; // Put this filename in a variable so we can enforce a log of the correct name
+
+    fs.readFile(autoReadingPath, {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        autoText = data.toString();
+        autoText = autoText.replace(/\n/g, "<br />");
+        logData("Text for auto mode: " + autoReadingPath, "FILENAME");
+      }
+    });
+
+    fs.readFile('./nlp_files/edited_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        autoTextSkimming = data.toString();
+        autoTextSkimming = autoTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/fadeout_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        autoTextScanning = data.toString();
+        autoTextScanning = autoTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    const manualReadingPath = './nlp_files/chinese_history.txt';
+
+    fs.readFile(manualReadingPath, {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualText = data.toString();
+        manualText = manualText.replace(/\n/g, "<br />");
+        logData("Text for manual mode: " + manualReadingPath, "FILENAME");
+      }
+    });
+
+    fs.readFile('./nlp_files/edited_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualTextSkimming = data.toString();
+        manualTextSkimming = manualTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/fadeout_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        manualTextScanning = data.toString();
+        manualTextScanning = manualTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/reading.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextReading = data.toString();
+        tutorialTextReading = tutorialTextReading.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/skimming.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextSkimming = data.toString();
+        tutorialTextSkimming = tutorialTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/scanning.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialTextScanning = data.toString();
+        tutorialTextScanning = tutorialTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_reading.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextReading = data.toString();
+        tutorialManualTextReading = tutorialManualTextReading.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_skimming.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextSkimming = data.toString();
+        tutorialManualTextSkimming = tutorialManualTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/manual_scanning.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialManualTextScanning = data.toString();
+        tutorialManualTextScanning = tutorialManualTextScanning.replace(/\n/g, "<br />");
+      }
+    });
 }
