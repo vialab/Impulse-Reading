@@ -1074,8 +1074,11 @@ export class AutoQuestions extends Component {
         <h2>Questions</h2>
         <p className='text'>
           Time is up for the first task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          <br />
+          As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
+          you don't wish to answer them or don't know the answer.
         </p>
-        1.  What categorized the Egyptian climate in Predynastic and Early Dynastic times?
+        1.  What describes the Egyptian climate in Predynastic and Early Dynastic times?
         <div className="field">
           <input type="radio" id="chinese-1a" name="chinese-1" value="A"/>
           <label htmlFor="chinese-1a">The climate was much less arid than it is today, and covered in trees</label>
@@ -1238,6 +1241,9 @@ export class ManualQuestions extends Component {
         <h2>Questions</h2>
         <p className='text'>
           Time is up for the second task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          <br />
+          As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
+          you don't wish to answer them or don't know the answer.
         </p>
         1.  What actions did the popular risings of 1325 take?
         <div className="field">
