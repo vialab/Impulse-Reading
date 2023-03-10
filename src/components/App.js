@@ -391,7 +391,7 @@ export default class App extends Component {
     // Scale the impact of this saccade by the amount of text skipped by this saccade.
     // Because we didn't hit one of the other types of detectors, changeY will be at least 2.5 lines skipped.
 
-    var scoreChange = Math.abs(changeY) * 5;
+    var scoreChange = Math.abs(changeY) * 6;
     if (scoreChange > 25) {
       scoreChange = 25;
     }
@@ -486,8 +486,8 @@ export default class App extends Component {
 
   handleScroll(event) {
 
-    // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently 1/3 second of lockout.
-    scrollLockout = Math.floor(REFRESH_RATE / 3);
+    // When scrolls occur, we should assume the current fixation is broken and lock the detectors for a bit - currently three frames of lockout.
+    scrollLockout = Math.floor(REFRESH_RATE / 11);
 
     // Calculate the distance scrolled and increment the scanning detector, as fast scrolling is a sign of scanning.
     var last = lastScrollPosition;
