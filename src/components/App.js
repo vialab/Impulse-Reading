@@ -506,10 +506,10 @@ export default class App extends Component {
     if(scanningScore < 80) {
       var scanningDetectorChange = scrollDifferenceInPx / 40;
       this.changeDetectorScores(0, 0, scanningDetectorChange);
-      logData("Scroll event. Scanning detector change: " + scanningDetectorChange, "SCROLL");
+      logData("Scroll event. New position: " + newScrollPosition + ". Scanning detector change: " + scanningDetectorChange, "SCROLL");
     }
     else {
-      logData("Scroll event. Scanning score is already at maximum.", "SCROLL");
+      logData("Scroll event. New position: " + newScrollPosition + ". Scanning score is already at maximum.", "SCROLL");
     }
   }
 
