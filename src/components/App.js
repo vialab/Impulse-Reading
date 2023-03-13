@@ -62,6 +62,8 @@ var manualText;
 var manualTextSkimming;
 var manualTextScanning;
 
+var controlText;
+
 var tutorialTextReading;
 var tutorialTextSkimming;
 var tutorialTextScanning;
@@ -571,6 +573,9 @@ export default class App extends Component {
       case "AutoQuestions":
           return this.createAutoQuestions();
           break;
+      case "AutoSurvey":
+          return this.createAutoSurvey();
+          break;
       case "ManualInstructions":
           return this.createManualInstructions();
           break;
@@ -579,6 +584,21 @@ export default class App extends Component {
           break;
       case "ManualQuestions":
           return this.createManualQuestions();
+          break;
+      case "ManualSurvey":
+          return this.createManualSurvey();
+          break;
+      case "ControlInstructions":
+          return this.createControlInstructions();
+          break;
+      case "ControlTask":
+          return this.createControlTask(currentMode);
+          break;
+      case "ControlQuestions":
+          return this.createControlQuestions();
+          break;
+      case "EndSurvey":
+          return this.createEndSurvey();
           break;
       case "EndPage":
           return this.createEndPage();
@@ -754,10 +774,23 @@ export default class App extends Component {
       logData("Automatic condition, question 3 user answered: " + answerThree, "QUESTION", true);
       logData("Automatic condition, question 4 user answered: " + answerFour, "QUESTION", true);
 
-      this.setPage("ManualInstructions");
+      this.setPage("AutoSurvey");
     }
 
     return (<AutoQuestions
+      onClick = {nextPageFunc}
+    />);
+  }
+
+  createAutoSurvey() {
+
+    const nextPageFunc = () => {
+      // TODO: log the usability question results here.
+
+      this.setPage("ManualInstructions");
+    }
+
+    return (<AutoSurvey
       onClick = {nextPageFunc}
     />);
   }
@@ -822,10 +855,83 @@ export default class App extends Component {
       logData("Manual condition, question 3 user answered: " + answerThree, "QUESTION", true);
       logData("Manual condition, question 4 user answered: " + answerFour, "QUESTION", true);
 
-      this.setPage("EndPage");
+      this.setPage("ManualSurvey");
     }
 
     return (<ManualQuestions
+      onClick = {nextPageFunc}
+    />);
+  }
+
+  createManualSurvey() {
+
+    const nextPageFunc = () => {
+      // TODO: log the usability question results here.
+
+      this.setPage("ControlInstructions");
+    }
+
+    return (<ManualSurvey
+      onClick = {nextPageFunc}
+    />);
+  }
+
+  createControlInstructions() {
+    let onClickFunc = () => {
+      inTask = true;
+    
+      const startTime = Date.now();
+      endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
+      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ControlQuestions");
+      this.setPage("ControlTask");
+    }
+
+    return (<ControlInstructions 
+      onClick = {onClickFunc}
+    />);
+  }
+
+  createControlTask() {
+
+    let onClickFunc = () => {
+      inTask = false;
+      this.setPage("ControlQuestions");
+    }
+
+    return (<ControlTask
+      onClick = {onClickFunc}
+    />);
+  }
+
+  createControlQuestions() {
+    const nextPageFunc = () => {
+
+      const answerOne = document.querySelector('input[name="control-1"]:checked')?.value;
+      const answerTwo = document.querySelector('input[name="control-2"]:checked')?.value;
+      const answerThree = document.querySelector('input[name="control-3"]:checked')?.value;
+      const answerFour = document.querySelector('input[name="control-4"]:checked')?.value;
+
+      logData("Control condition, question 1 user answered: " + answerOne, "QUESTION", true);
+      logData("Control condition, question 2 user answered: " + answerTwo, "QUESTION", true);
+      logData("Control condition, question 3 user answered: " + answerThree, "QUESTION", true);
+      logData("Control condition, question 4 user answered: " + answerFour, "QUESTION", true);
+
+      this.setPage("EndSurvey");
+    }
+
+    return (<ControlQuestions
+      onClick = {nextPageFunc}
+    />);
+  }
+
+  createEndSurvey() {
+    const nextPageFunc = () => {
+      // TODO: log the usability question results here.
+
+      this.setPage("EndPage");
+    }
+
+    return (<EndSurvey
       onClick = {nextPageFunc}
     />);
   }
@@ -1023,7 +1129,7 @@ export class TutorialManual extends Component {
             Highlight Content Words
           </button>
           <button className='button flex-button' onClick={this.props.scanButtonFunc} >
-            Highlight Sentences
+            Fadeout Sentences
           </button>
         </div>
         <div className='text'>
@@ -1197,6 +1303,27 @@ export class AutoQuestions extends Component {
   }
 }
 
+export class AutoSurvey extends Component {
+  render() {
+    return (
+      <div className="App">
+        <h2>Survey</h2>
+        <div className='text'>
+          <p className='text'>
+            Please answer the following questions about your experience in the task you just completed.
+          </p>
+          <p className='text'>
+            TODO Questions will go here.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
 export class ManualInstructions extends Component {
   render() {
     return (
@@ -1361,6 +1488,177 @@ export class ManualQuestions extends Component {
         </button>
       </div>
       );
+  }
+}
+
+export class ManualSurvey extends Component {
+  render() {
+    return (
+      <div className="App">
+        <h2>Survey</h2>
+        <div className='text'>
+          <p className='text'>
+            Please answer the following questions about your experience in the task you just completed.
+          </p>
+          <p className='text'>
+            TODO Questions will go here.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ControlInstructions extends Component {
+  render() {
+    return (
+      <div className="App">
+        <h2>Task 3</h2>
+        <div className='text'>
+          <p className='text'>
+            Thank you for your participation. Please let the researcher know if you would like a break, or if you have any questions.
+          </p>
+          <p className='text'>
+            TODO: control condition instructions.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Start
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ControlTask extends Component {
+  render() {
+
+    controlText = "TODO control task text";
+    var htmlText = controlText;
+
+    return (
+      <div className="App">
+        <div className="sidebar">
+          <Timer text="Current task: Find info about <b>TODO</b>." />
+        </div>
+
+        <h2>Task 3</h2>
+        <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <button className='button bottom-right' onClick={this.props.onClick} >
+          Move to Questions
+        </button>
+      </div>
+    );
+  }
+}
+
+export class ControlQuestions extends Component {
+  render() {
+    return (
+      <div className="App">
+        <h2>Questions</h2>
+        <p className='text'>
+          Time is up for the third task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          <br />
+          As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
+          you don't wish to answer them or don't know the answer.
+        </p>
+        1.  Question1
+        <div className="field">
+          <input type="radio" id="control-1a" name="control-1" value="A"/>
+          <label htmlFor="control-1a">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-1b" name="control-1" value="B"/>
+          <label htmlFor="control-1b">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-1c" name="control-1" value="C"/>
+          <label htmlFor="control-1c">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-1d" name="control-1" value="D"/>
+          <label htmlFor="control-1d">Answer</label>
+        </div>
+        <br />
+
+        2. Question2
+        <div className="field">
+          <input type="radio" id="control-2a" name="control-2" value="A"/>
+          <label htmlFor="control-2a">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-2b" name="control-2" value="B"/>
+          <label htmlFor="control-2b">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-2c" name="control-2" value="C"/>
+          <label htmlFor="control-2c">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-2d" name="control-2" value="D"/>
+          <label htmlFor="control-2d">Answer</label>
+        </div>
+        <br />
+
+        3.  Question3
+        <div className="field">
+          <input type="radio" id="control-3a" name="control-3" value="A"/>
+          <label htmlFor="control-3a">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-3b" name="control-3" value="B"/>
+          <label htmlFor="control-3b">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-3c" name="control-3" value="C"/>
+          <label htmlFor="control-3c">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-3d" name="control-3" value="D"/>
+          <label htmlFor="control-3d">Answer</label>
+        </div>
+        <br />
+
+        4.  Question4
+        <div className="field">
+          <input type="radio" id="control-4a" name="control-4" value="A"/>
+          <label htmlFor="control-4a">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-4b" name="control-4" value="B"/>
+          <label htmlFor="control-4b">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-4c" name="control-4" value="C"/>
+          <label htmlFor="control-4c">Answer</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="control-4d" name="control-4" value="D"/>
+          <label htmlFor="control-4d">Answer</label>
+        </div>
+        <br />
+        <button className='button' onClick={this.props.onClick} >
+          Submit
+        </button>
+      </div>
+      );
+  }
+}
+
+export class EndSurvey extends Component {
+  render() {
+    return (
+      <div className="App">
+        <p className='text'> Post-study final questionnaire.</p>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
   }
 }
 
