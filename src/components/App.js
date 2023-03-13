@@ -85,7 +85,7 @@ export default class App extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      page: "TutorialSkimming",
+      page: "TutorialIntro",
       currentMode: READING
     }
 
@@ -538,6 +538,9 @@ export default class App extends Component {
   getPage(pageName, currentMode) {
     // We make the onClick callback functions in these functions, rather than in the Page classes, so that "this" refers to the App component.
     switch(pageName) {
+      case "TutorialIntro":
+          return this.createTutorialIntro();
+          break;
       case "TutorialSkimming":
           return this.createTutorialSkimming();
           break;
@@ -588,6 +591,12 @@ export default class App extends Component {
   setPage(page) {
     this.setState({page: page});
     logData("Moving to page: " + page, "PAGE");
+  }
+
+  createTutorialIntro() {
+    return (<TutorialIntro 
+      onClick = {() => this.setPage("TutorialSkimming")}
+    />);
   }
 
   createTutorialSkimming() {
@@ -831,6 +840,32 @@ export default class App extends Component {
   }
 }
 
+export class TutorialIntro extends Component {
+  render() {
+    return (
+      <div className="App">
+        <h2>Tutorial</h2>
+        <div className='text'>
+          <p className='text'>
+            Thank you for agreeing to participate in today's study. Before we begin the tasks, we will do some brief tutorials on the
+            software system you will be using today.
+
+            We will begin the tutorials by showing you some different modes that the software system can use to format words on the screen.
+            Each of these formats is intended to be useful, but they differ in which situation they are most useful for.
+            After you have seen each of the modes, we will train you in two different ways of switching between the modes.
+          </p>
+          <p className='text'>
+            Please let the researchers know if you need help at any point, or if you would like to take a break.
+          </p>
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
+
 export class TutorialSkimming extends Component {
   render() {
     return (
@@ -838,8 +873,9 @@ export class TutorialSkimming extends Component {
         <h2>Tutorial</h2>
         <div className='text'>
           <p className='text'>
-            In today's study, you will read passages while searching for information. Only some of the information in these passages will be useful.
-            The passages you will read are quite long, so it is recommended to skim the text quickly to find the information you need.
+            In today's study, you will read passages while searching for information. However, the passages you will read are quite long.
+            Most people will not be able to fully read the text in the time given. Therefore, it is recommended
+            to skim the text quickly to find the information you need, and to skip irrelevant parts of the passage.
             To help you read and find information more quickly, we have built a computer system that will format the text in certain ways.
           </p>
           <p className='text'>
@@ -926,7 +962,7 @@ export class TutorialReading extends Component {
         <div className='text'>
           <p className='text'>
             The final format is normal text. All special formatting will be removed in this mode. This mode is most useful for reading
-            text thoroughly, like in situations where you want to make sure you understand all of the information in a passage.
+            text thoroughly. For example, this mode might be useful when you have found an important paragraph that you want to make sure you understand.
           </p>
           <p className='text'>
             For this passage, we ask that you try to read the text thoroughly. Try not to skim the passage or skip anything.
