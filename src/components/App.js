@@ -926,7 +926,15 @@ export default class App extends Component {
 
   createEndSurvey() {
     const nextPageFunc = () => {
-      // TODO: log the usability question results here.
+      const answerOne = document.querySelector('input[name="survey-1"]:checked')?.value;
+      const answerTwo = document.querySelector('input[name="survey-2"]:checked')?.value;
+      const answerThree = document.querySelector('input[name="survey-3"]:checked')?.value;
+      const answerFour = document.getElementById('survey-text').value;
+
+      logData("Post-study survey, question 1 user answered: " + answerOne, "QUESTION", true);
+      logData("Post-study survey, question 2 user answered: " + answerTwo, "QUESTION", true);
+      logData("Post-study survey, question 3 user answered: " + answerThree, "QUESTION", true);
+      logData("Post-study survey, free text user answered: " + answerFour, "QUESTION", true);
 
       this.setPage("EndPage");
     }
@@ -1653,7 +1661,64 @@ export class EndSurvey extends Component {
   render() {
     return (
       <div className="App">
-        <p className='text'> Post-study final questionnaire.</p>
+        <h2>Survey</h2>
+        <p className='text'>
+          In today's study, two of the tasks used text formatting. During those tasks,
+          we used two different techniques to switch the formatting of text. In the Manual Switching technique,
+          you used buttons to switch the formatting at a time of your choosing. In the Automatic Switching technique, the computer system
+          did its best to figure out which formatting was useful using eye tracking.
+        </p>
+
+        1.  Which technique did you like the most?
+        <div className="field">
+          <input type="radio" id="survey-1a" name="survey-1" value="Manual"/>
+          <label htmlFor="survey-1a">Manual Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-1b" name="survey-1" value="Auto"/>
+          <label htmlFor="survey-1b">Automatic Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-1c" name="survey-1" value="Same"/>
+          <label htmlFor="survey-1c">Both were about the same</label>
+        </div>
+        <br />
+
+        2.  Which technique do you feel made the task easier to complete?
+        <div className="field">
+          <input type="radio" id="survey-2a" name="survey-2" value="Manual"/>
+          <label htmlFor="survey-2a">Manual Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-2b" name="survey-2" value="Auto"/>
+          <label htmlFor="survey-2b">Automatic Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-2c" name="survey-2" value="Same"/>
+          <label htmlFor="survey-2c">Both were about the same</label>
+        </div>
+        <br />
+
+        3.  In which technique do you feel you were best able to answer the questions?
+        <div className="field">
+          <input type="radio" id="survey-3a" name="survey-3" value="Manual"/>
+          <label htmlFor="survey-3a">Manual Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-3b" name="survey-3" value="Auto"/>
+          <label htmlFor="survey-3b">Automatic Switching</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="survey-3c" name="survey-3" value="Same"/>
+          <label htmlFor="survey-3c">Both were about the same</label>
+        </div>
+        <br />
+
+        Do you have any other comments on your preference of technique?
+        <textarea id="survey-text" rows="10" cols="30">
+        </textarea> 
+        <br />
+
         <button className='button' onClick={this.props.onClick} >
           Next
         </button>
@@ -1666,10 +1731,8 @@ export class EndPage extends Component {
   render() {
     return (
       <div className="App">
-        <p className='text'> Thank you for answering! This concludes the demo.</p>
-        <button className='button' onClick={this.props.onClick} >
-          Back to Start
-        </button>
+        <h2>End of Study</h2>
+        <p className='text'> Thank you for your participation in today's study! When you are ready, please see the researcher for the distribution of your remuneration.</p>
       </div>
     );
   }
