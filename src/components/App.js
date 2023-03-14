@@ -72,6 +72,10 @@ var tutorialManualTextReading;
 var tutorialManualTextSkimming;
 var tutorialManualTextScanning;
 
+var tutorialAutoTextReading;
+var tutorialAutoTextSkimming;
+var tutorialAutoTextScanning;
+
 var isTakingTutorialFast = false;
 var isTakingTutorialSlow = false;
 var slowForwardSaccades = [];
@@ -564,6 +568,9 @@ export default class App extends Component {
       case "TutorialManual":
           return this.createTutorialManual(currentMode);
           break;
+      case "TutorialAuto":
+          return this.createTutorialAuto(currentMode);
+          break;
       case "AutoIntro":
           return this.createAutoIntro();
           break;
@@ -695,6 +702,16 @@ export default class App extends Component {
   createTutorialManual(currentMode) {
     manualControl = true;
 
+    let nextPageFunc = () => {
+      this.setPage("TutorialAuto");
+
+      // Start the tutorial at a blank slate - the text might switch around quickly at first, but that's fine for a tutorial.
+      this.setState({currentMode: READING});
+      readingScore = 0;
+      skimmingScore = 0;
+      scanningScore = 0;
+    }
+
     let readButtonFunc = () => {
       this.setModeManually(READING);
     }
@@ -708,7 +725,7 @@ export default class App extends Component {
     }
 
     return (<TutorialManual 
-      onClick = {() => this.setPage("AutoIntro")}
+      onClick = {nextPageFunc}
       currentMode = {currentMode}
       readButtonFunc = {readButtonFunc}
       skimButtonFunc = {skimButtonFunc}
@@ -716,9 +733,16 @@ export default class App extends Component {
     />);
   }
 
-  createAutoIntro() {
+  createTutorialAuto(currentMode) {
     manualControl = false;
 
+    return (<TutorialAuto 
+      onClick = {() => this.setPage("AutoIntro")}
+      currentMode = {currentMode}
+    />);
+  }
+
+  createAutoIntro() {
     return (<AutoIntro 
       onClick = {() => this.autoIntroOnClick()}
     />);
@@ -1098,6 +1122,7 @@ export class ReadingExample extends Component {
 
     return (
       <div className="App">
+
         <h2>Ancient Egypt</h2>
         <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
         <button className='button' onClick={this.props.onClick} >
@@ -1152,8 +1177,41 @@ export class TutorialManual extends Component {
   }
 }
 
+export class TutorialAuto extends Component {
+  render() {
+
+    var htmlText="";
+
+    if (this.props.currentMode == READING) {
+      htmlText = tutorialAutoTextReading;
+    }
+    else if (this.props.currentMode == SKIMMING) {
+      htmlText = tutorialAutoTextSkimming;
+    }
+    else {
+      htmlText = tutorialAutoTextScanning;
+    }
 
 
+    return (
+
+      <div className="App">
+        <h2>Tutorial</h2>
+
+        <div className='text'>
+          <p className='text'>
+            This text will teach you about the intro? How do we want to do the formatting here?
+          </p>
+          <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+
+        </div>
+        <button className='button' onClick={this.props.onClick} >
+          Next
+        </button>
+      </div>
+    );
+  }
+}
 
 export class AutoIntro extends Component {
   render() {
@@ -1937,6 +1995,36 @@ export function loadTextFiles() {
       else {
         tutorialManualTextScanning = data.toString();
         tutorialManualTextScanning = tutorialManualTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/auto_reading.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialAutoTextReading = data.toString();
+        tutorialAutoTextReading = tutorialAutoTextReading.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/auto_skimming.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialAutoTextSkimming = data.toString();
+        tutorialAutoTextSkimming = tutorialAutoTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/tutorial_text/auto_scanning.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        tutorialAutoTextScanning = data.toString();
+        tutorialAutoTextScanning = tutorialAutoTextScanning.replace(/\n/g, "<br />");
       }
     });
 }
