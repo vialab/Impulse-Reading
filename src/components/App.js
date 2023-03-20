@@ -809,7 +809,7 @@ export default class App extends Component {
   createAutoSurvey() {
 
     const nextPageFunc = () => {
-      // TODO: log the usability question results here.
+      logSusResponses("Automatic");
 
       this.setPage("ManualInstructions");
     }
@@ -890,7 +890,7 @@ export default class App extends Component {
   createManualSurvey() {
 
     const nextPageFunc = () => {
-      // TODO: log the usability question results here.
+      logSusResponses("Manual");
 
       this.setPage("ControlInstructions");
     }
@@ -1374,13 +1374,8 @@ export class AutoSurvey extends Component {
     return (
       <div className="App">
         <h2>Survey</h2>
-        <div className='text'>
-          <p className='text'>
-            Please answer the following questions about your experience in the task you just completed.
-          </p>
-          <p className='text'>
-            TODO Questions will go here.
-          </p>
+        <div>
+          <SusScale />
         </div>
         <button className='button' onClick={this.props.onClick} >
           Next
@@ -1562,13 +1557,8 @@ export class ManualSurvey extends Component {
     return (
       <div className="App">
         <h2>Survey</h2>
-        <div className='text'>
-          <p className='text'>
-            Please answer the following questions about your experience in the task you just completed.
-          </p>
-          <p className='text'>
-            TODO Questions will go here.
-          </p>
+        <div>
+          <SusScale />
         </div>
         <button className='button' onClick={this.props.onClick} >
           Next
@@ -1736,10 +1726,6 @@ export class EndSurvey extends Component {
           <input type="radio" id="survey-1b" name="survey-1" value="Auto"/>
           <label htmlFor="survey-1b">Automatic Switching</label>
         </div>
-        <div className="field">
-          <input type="radio" id="survey-1c" name="survey-1" value="Same"/>
-          <label htmlFor="survey-1c">Both were about the same</label>
-        </div>
         <br />
 
         2.  Which technique do you feel made the task easier to complete?
@@ -1751,10 +1737,6 @@ export class EndSurvey extends Component {
           <input type="radio" id="survey-2b" name="survey-2" value="Auto"/>
           <label htmlFor="survey-2b">Automatic Switching</label>
         </div>
-        <div className="field">
-          <input type="radio" id="survey-2c" name="survey-2" value="Same"/>
-          <label htmlFor="survey-2c">Both were about the same</label>
-        </div>
         <br />
 
         3.  In which technique do you feel you were best able to answer the questions?
@@ -1765,10 +1747,6 @@ export class EndSurvey extends Component {
         <div className="field">
           <input type="radio" id="survey-3b" name="survey-3" value="Auto"/>
           <label htmlFor="survey-3b">Automatic Switching</label>
-        </div>
-        <div className="field">
-          <input type="radio" id="survey-3c" name="survey-3" value="Same"/>
-          <label htmlFor="survey-3c">Both were about the same</label>
         </div>
         <br />
 
@@ -1830,6 +1808,142 @@ export function Timer(props) {
       </div>
     </div>
   );
+}
+
+export function SusScale(props) {
+  return (
+    <div>
+      <p className='text'>
+        We would like to ask you some questions about your experience in the task you just completed. When answering these questions,
+        please consider only your experience in the 5-minute task you just completed.
+        For each of the following statements, select one answer that best describes your reactions to that task.
+      </p>
+      <SusQuestion text="1. I think that I would like to use this system frequently." id="Q1" />
+      <SusQuestion text="2. I found the system unnecessarily complex." id="Q2" />
+      <SusQuestion text="3. I thought the system was easy to use." id="Q3" />
+      <SusQuestion text="4. I think that I would need the support of a technical person to be able to use this system." id="Q4" />
+      <SusQuestion text="5. I found the various functions in this system were well integrated." id="Q5" />
+      <SusQuestion text="6. I thought there was too much inconsistency in this system." id="Q6" />
+      <SusQuestion text="7. I would imagine that most people would learn to use this system very quickly." id="Q7" />
+      <SusQuestion text="8. I found the system very awkward to use." id="Q8" />
+      <SusQuestion text="9. I felt very confident using the system." id="Q9" />
+      <SusQuestion text="10. I needed to learn a lot of things before I could get going with this system." id="Q10" />
+      <SusQuestion text="11. My strategy for finding information used the text highlighting." id="Q11" />
+      <SusQuestion text="12. I found the text formatting useful when it highlighted content words, like verbs and nouns." id="Q12" />
+      <SusQuestion text="13. I found the text formatting useful when it faded out the sentences in a paragraph." id="Q13" />
+      <SusQuestion text="14. Changing the text highlighting distracted me." id="Q14" />
+    </div>
+  );
+}
+
+export function SusQuestion(props) {
+
+  const text = props.text;
+  const id = props.id;
+
+  return (
+    <div>
+      <p className='susLabel'>
+        {text}
+      </p>
+      <div className='flex-container'>
+        <div className='flex-column'>
+          <div className='flex-row' />
+          <div className='flex-row field' >
+            Strongly Disagree
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row field'>
+            1
+          </div>
+          <div className='flex-row'>
+            <div className="field">
+              <input type="radio" id={id + "1"} name={id} value="1"/>
+            </div>
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row field'>
+            2
+          </div>
+          <div className='flex-row'>
+            <div className="field">
+              <input type="radio" id={id + "2"} name={id} value="2"/>
+            </div>
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row field'>
+            3
+          </div>
+          <div className='flex-row'>
+            <div className="field">
+              <input type="radio" id={id + "3"} name={id} value="3"/>
+            </div>
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row field'>
+            4
+          </div>
+          <div className='flex-row'>
+            <div className="field">
+              <input type="radio" id={id + "4"} name={id} value="4"/>
+            </div>
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row field'>
+            5
+          </div>
+          <div className='flex-row'>
+            <div className="field">
+              <input type="radio" id={id + "5"} name={id} value="5"/>
+            </div>
+          </div>
+        </div>
+        <div className='flex-column'>
+          <div className='flex-row' />
+          <div className='flex-row field' >
+            Strongly Agree
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function logSusResponses(condition) {
+  const answerOne = document.querySelector('input[name="Q1"]:checked')?.value;
+  const answerTwo = document.querySelector('input[name="Q2"]:checked')?.value;
+  const answerThree = document.querySelector('input[name="Q3"]:checked')?.value;
+  const answerFour = document.querySelector('input[name="Q4"]:checked')?.value;
+  const answerFive = document.querySelector('input[name="Q5"]:checked')?.value;
+  const answerSix = document.querySelector('input[name="Q6"]:checked')?.value;
+  const answerSeven = document.querySelector('input[name="Q7"]:checked')?.value;
+  const answerEight = document.querySelector('input[name="Q8"]:checked')?.value;
+  const answerNine = document.querySelector('input[name="Q9"]:checked')?.value;
+  const answerTen = document.querySelector('input[name="Q10"]:checked')?.value;
+  const answerEleven = document.querySelector('input[name="Q11"]:checked')?.value;
+  const answerTwelve = document.querySelector('input[name="Q12"]:checked')?.value;
+  const answerThirteen = document.querySelector('input[name="Q13"]:checked')?.value;
+  const answerFourteen = document.querySelector('input[name="Q14"]:checked')?.value;
+
+  logData(condition + " condition, usability survey question 1 user answered: " + answerOne, "QUESTION", true);
+  logData(condition + " condition, usability survey question 2 user answered: " + answerTwo, "QUESTION", true);
+  logData(condition + " condition, usability survey question 3 user answered: " + answerThree, "QUESTION", true);
+  logData(condition + " condition, usability survey question 4 user answered: " + answerFour, "QUESTION", true);
+  logData(condition + " condition, usability survey question 5 user answered: " + answerFive, "QUESTION", true);
+  logData(condition + " condition, usability survey question 6 user answered: " + answerSix, "QUESTION", true);
+  logData(condition + " condition, usability survey question 7 user answered: " + answerSeven, "QUESTION", true);
+  logData(condition + " condition, usability survey question 8 user answered: " + answerEight, "QUESTION", true);
+  logData(condition + " condition, usability survey question 9 user answered: " + answerNine, "QUESTION", true);
+  logData(condition + " condition, usability survey question 10 user answered: " + answerTen, "QUESTION", true);
+  logData(condition + " condition, usability survey question 11 user answered: " + answerEleven, "QUESTION", true);
+  logData(condition + " condition, usability survey question 12 user answered: " + answerTwelve, "QUESTION", true);
+  logData(condition + " condition, usability survey question 13 user answered: " + answerThirteen, "QUESTION", true);
+  logData(condition + " condition, usability survey question 14 user answered: " + answerFourteen, "QUESTION", true);
 }
 
 export function logData(data, dataType = "GENERIC", consolePrint = false) {

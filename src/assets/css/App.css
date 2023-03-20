@@ -181,6 +181,33 @@ br
   flex-basis: 0px;
 }
 
+.flex-container {
+  display: flex;
+}
+
+.flex-column {
+  box-align: stretch;
+  flex-grow: 1;
+  flex-direction: column;
+  min-width: 32px;
+  text-align: center;
+  max-width: 35%;
+}
+
+.flex-row {
+  align-items: center;
+  display: flex;
+  box-pack: center;
+  justify-content: center;
+  min-height: 1.5em;
+}
+
+.susLabel {
+  margin-bottom: -1px;
+  margin-top: 25px;
+}
+
+
 #gazeCursor {
   position: absolute;
   width: 30px;
