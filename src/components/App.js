@@ -128,7 +128,7 @@ export default class App extends Component {
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
       const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
       logData("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine + " transition type: " + transitionType, "SACCADE");
-      logData("scores: " + readingScore + " scanning: " + scanningScore, "TEST", true);
+      logData("reading score: " + readingScore + " skimming: " + skimmingScore + " scanning: " + scanningScore, "SACCADE");
     }
   }
 
