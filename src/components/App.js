@@ -128,6 +128,7 @@ export default class App extends Component {
       const DEBUGdiffXInChar = newFixation.changeX / CHARACTER_WIDTH;
       const DEBUGdiffYInLine = newFixation.changeY / LINE_HEIGHT;
       logData("diff x in Char: " + DEBUGdiffXInChar + " diffY in line: " + DEBUGdiffYInLine + " transition type: " + transitionType, "SACCADE");
+      logData("scores: " + readingScore + " scanning: " + scanningScore, "TEST", true);
     }
   }
 
@@ -1179,33 +1180,22 @@ export class TutorialManual extends Component {
 
 export class TutorialAuto extends Component {
   render() {
-
-    var htmlText="";
-
-    if (this.props.currentMode == READING) {
-      htmlText = tutorialAutoTextReading;
-    }
-    else if (this.props.currentMode == SKIMMING) {
-      htmlText = tutorialAutoTextSkimming;
-    }
-    else {
-      htmlText = tutorialAutoTextScanning;
-    }
-
+    let readingClassName = (this.props.currentMode == READING ? "visible" : "");
+    let skimmingClassName = (this.props.currentMode == SKIMMING ? "visible" : "");
+    let scanningClassName =(this.props.currentMode == SCANNING ? "visible" : "");
 
     return (
 
       <div className="App">
         <h2>Tutorial</h2>
 
-        <div className='text'>
-          <p className='text'>
-            This text will teach you about the intro? How do we want to do the formatting here?
-          </p>
-          <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
+        <div className='relative'>
+          <p className={'text overlapping-text ' + readingClassName} dangerouslySetInnerHTML={{__html: tutorialAutoTextReading}}></p>
+          <p className={'text overlapping-text ' + skimmingClassName} dangerouslySetInnerHTML={{__html: tutorialAutoTextSkimming}}></p>
+          <p className={'text overlapping-text ' + scanningClassName} dangerouslySetInnerHTML={{__html: tutorialAutoTextScanning}}></p>
 
         </div>
-        <button className='button' onClick={this.props.onClick} >
+        <button className='button bottom-right' onClick={this.props.onClick} >
           Next
         </button>
       </div>
@@ -1244,11 +1234,6 @@ export class AutoIntro extends Component {
 
 export class AutoTask extends Component {
   render() {
-
-    let readingHtml = autoText;
-    let skimmingHtml = autoTextSkimming;
-    let scanningHtml = autoTextScanning;
-    
     let readingClassName = (this.props.currentMode == READING ? "visible" : "");
     let skimmingClassName = (this.props.currentMode == SKIMMING ? "visible" : "");
     let scanningClassName =(this.props.currentMode == SCANNING ? "visible" : "");

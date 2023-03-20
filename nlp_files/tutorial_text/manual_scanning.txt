@@ -6,5 +6,5 @@
           <p className='text'>
             
 
-		<span class="highlight-one">Please try formatting this text now.</span> <span class="highlight-two">When you're ready to continue, click "Next" to receive instructions about the first task.</span>
+		<span class="highlight-one">Please try formatting this text now.</span> <span class="highlight-two">When you're ready to continue, click "Next" to receive instructions about the other task.</span>
           </p>
