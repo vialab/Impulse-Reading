@@ -403,7 +403,7 @@ export default class App extends Component {
       scoreChange = 42;
     }
 
-    return this.changeDetectorScores(-5, -5, scoreChange);
+    return this.changeDetectorScores(-12, -12, scoreChange);
   }
 
   changeDetectorScores(readChange, skimChange, scanChange) {
