@@ -273,7 +273,7 @@ export default class App extends Component {
       const characterSpaces = changeX / CHARACTER_WIDTH;
       const lineSpaces = changeY / LINE_HEIGHT;
 
-      if (lineSpaces > 2 || lineSpaces < -2) {
+      if (lineSpaces > 2.5 || lineSpaces < -2.5) {
         return VERTICAL_JUMP;
       }
 
