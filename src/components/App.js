@@ -85,6 +85,7 @@ var skimForwardCharacterSpaces = 8; // This default gets changed to a calibrated
 var endTime = 0;
 
 var dataLoggingArray = [];
+var dataLoggingArrayCondensed = [];
 
 export default class App extends Component {
 
@@ -618,7 +619,7 @@ export default class App extends Component {
 
   setPage(page) {
     this.setState({page: page});
-    logData("Moving to page: " + page, "PAGE");
+    logData("Moving to page: " + page, "PAGE", true);
   }
 
   createTutorialIntro() {
@@ -1931,7 +1932,7 @@ export function logSusResponses(condition) {
   logData(condition + " condition, usability survey question 14 user answered: " + answerFourteen, "QUESTION", true);
 }
 
-export function logData(data, dataType = "GENERIC", consolePrint = false) {
+export function logData(data, dataType = "GENERIC", includeInCondensedLog = false) {
   //format:
   //1519211809934 FIXATION: my message here
 
@@ -1939,21 +1940,27 @@ export function logData(data, dataType = "GENERIC", consolePrint = false) {
   const logLine = timestamp + " " + dataType + ": " + data;
   dataLoggingArray.push(logLine);
 
-  if (consolePrint) {
+  if (includeInCondensedLog) {
+    dataLoggingArrayCondensed.push(logLine);
     console.log(data);
   }
 }
 
 export function writeLogFile() {
+  writeSingleArrayToFile(dataLoggingArray, "logfile");
+  writeSingleArrayToFile(dataLoggingArrayCondensed, "logfile_condensed");
+}
+
+export function writeSingleArrayToFile(array, name) {
   // copy/pasted from first result on stackoverflow
   const fs = require("fs");
 
-  const fileName = "./log_files/logfile_" + Date.now() + ".txt"
+  const fileName = "./log_files/"+ name + "_" + Date.now() + ".txt"
   const writeStream = fs.createWriteStream(fileName);
   const pathName = writeStream.path;
     
   // write each value of the array on the file breaking line
-  dataLoggingArray.forEach(value => writeStream.write(`${value}\n`));
+  array.forEach(value => writeStream.write(`${value}\n`));
 
   // the finish event is emitted when all data has been flushed from the stream
   writeStream.on('finish', () => {
