@@ -974,6 +974,8 @@ export default class App extends Component {
     // This is the end of the experiment - let's write the log file now.
     writeLogFile();
 
+    manualControl = true; // Hacky fix to prevent the page from re-rendering on imaginary mode shifts, causing multiple logs to be output.
+
     return (<EndPage
       onClick = {() => this.setPage("AutoIntro")}
     />);
