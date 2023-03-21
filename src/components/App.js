@@ -273,7 +273,7 @@ export default class App extends Component {
       const characterSpaces = changeX / CHARACTER_WIDTH;
       const lineSpaces = changeY / LINE_HEIGHT;
 
-      if (lineSpaces > 2.5 || lineSpaces < -2.5) {
+      if (lineSpaces > 2 || lineSpaces < -2) {
         return VERTICAL_JUMP;
       }
 
@@ -378,13 +378,13 @@ export default class App extends Component {
     // For each type, update the reading score, skimming score, and scanning score.
     switch(transitionType) {
       case READ_FORWARD: return this.changeDetectorScores(10, 5, 0);
-      case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 0);
+      case SKIM_FORWARD: return this.changeDetectorScores(5, 10, 5);
       case LONG_SKIM_JUMP: return this.changeDetectorScores(-5, 8, 5);
-      case SHORT_REGRESSION: return this.changeDetectorScores(-5, -5, -12); // Short regressions are rare during scanning, but more common in other types.
-      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, -8);
-      case RESET_JUMP: return this.changeDetectorScores(5, 5, -10); // Reading entire lines of text and then going to the next is rare in scanning.
+      case SHORT_REGRESSION: return this.changeDetectorScores(-5, -5, -8); // Short regressions are rare during scanning, but more common in other types.
+      case LONG_REGRESSION: return this.changeDetectorScores(-5, -3, 5);
+      case RESET_JUMP: return this.changeDetectorScores(5, 5, -5); // Reading entire lines of text and then going to the next is rare in scanning.
       // case VERTICAL_JUMP: handled in if-statement above.
-      case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 0);
+      case UNCLASSIFIED_MOVE: return this.changeDetectorScores(0, 0, 5);
     }
 
   }
@@ -399,8 +399,8 @@ export default class App extends Component {
     // Because we didn't hit one of the other types of detectors, changeY will be at least 2.5 lines skipped.
 
     var scoreChange = Math.abs(changeY) * 6;
-    if (scoreChange > 25) {
-      scoreChange = 25;
+    if (scoreChange > 42) {
+      scoreChange = 42;
     }
 
     return this.changeDetectorScores(-5, -5, scoreChange);
@@ -893,7 +893,7 @@ export default class App extends Component {
     const nextPageFunc = () => {
       logSusResponses("Manual");
 
-      this.setPage("ControlInstructions");
+      this.setPage("EndSurvey");
     }
 
     return (<ManualSurvey
