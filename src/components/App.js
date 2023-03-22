@@ -275,7 +275,15 @@ export default class App extends Component {
       const lineSpaces = changeY / LINE_HEIGHT;
 
       if (lineSpaces > 2.5 || lineSpaces < -2.5) {
-        return VERTICAL_JUMP;
+        if (Math.abs(characterSpaces) > 34) {
+          // This is a large vertical jump, but it's too horizontal to realistically be scanning behavior.
+          // The most likely cases for this behavior are checking the time (on the far left) or a reset jump that just sneaked over the 2.5 margin.
+          // Empirically these saccades aren't very common, so we mostly ignore this case.
+          return UNCLASSIFIED_MOVE;
+        }
+        else {
+          return VERTICAL_JUMP;
+        }
       }
 
       // During the tutorials, we update the forward saccade calibration on non-vertical forward saccades.
