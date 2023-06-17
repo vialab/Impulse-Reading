@@ -1,7 +1,7 @@
 'use strict'
 
 // Import parts of electron to use
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
 const url = require('url')
 
@@ -62,12 +62,25 @@ function createWindow() {
 
   mainWindow.loadURL(indexPath)
 
+  mainWindow.confirm = (message) => {
+    const electron = window.require('electron')
+    const { dialog } = electron.remote
+    const buttonIdx = dialog.showMessageBoxSync(null, {
+      type: 'question',
+      message,
+      buttons: ['OK', 'Cancel'],
+      cancelId: 1,
+      defaultId: 0,
+    })
+    return buttonIdx === 0
+  }
+
   // Don't show until we are ready and loaded
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
 
     // Open the DevTools automatically if developing
-    if (dev) {
+    if (false) {
       const { default: installExtension, REACT_DEVELOPER_TOOLS } = require('electron-devtools-installer')
 
       installExtension(REACT_DEVELOPER_TOOLS)
