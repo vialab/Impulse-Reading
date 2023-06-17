@@ -20,7 +20,7 @@ br
 }
 
 .App {
-  width: 790px;   /* Chosen so the text size fits around 78-80 characters per line. Try to maintain that number if we change the font. */
+  width: 795px;   /* Chosen so the text size fits around 78-80 characters per line. Try to maintain that number if we change the font. */
   align-items: center;
   justify-content: center;
   margin: auto;
