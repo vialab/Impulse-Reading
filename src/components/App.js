@@ -1302,30 +1302,6 @@ export class AutoTask extends Component {
       </div>
     );
   }
-
-  componentDidMount() {
-    const collection = document.getElementsByClassName("relevant");
-    const recs = [];
-
-    function getOffset(el) {
-      const rect = el.getBoundingClientRect();
-      return {
-        left: rect.left + window.scrollX,
-        right: rect.right + window.scrollX,
-        top: rect.top + window.scrollY,
-        bottom: rect.bottom + window.scrollY
-      };
-    }
-
-    recs.push("left,right,top,bottom")
-    for (var el of collection) {
-      const rect = getOffset(el);
-      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
-      recs.push(csvString);
-    }
-
-    writeSingleArrayToFile(recs, "brownhills_relevant");
-  }
 }
 
 export class AutoQuestions extends Component {
@@ -1514,30 +1490,6 @@ export class ManualTask extends Component {
       </div>
     );
   }
-
-  componentDidMount() {
-    const collection = document.getElementsByClassName("relevant");
-    const recs = [];
-
-    function getOffset(el) {
-      const rect = el.getBoundingClientRect();
-      return {
-        left: rect.left + window.scrollX,
-        right: rect.right + window.scrollX,
-        top: rect.top + window.scrollY,
-        bottom: rect.bottom + window.scrollY
-      };
-    }
-
-    recs.push("left,right,top,bottom")
-    for (var el of collection) {
-      const rect = getOffset(el);
-      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
-      recs.push(csvString);
-    }
-
-    writeSingleArrayToFile(recs, "robbery_relevant");
-  }
 }
 
 export class ManualQuestions extends Component {
@@ -1700,30 +1652,6 @@ export class ControlTask extends Component {
         </button>
       </div>
     );
-  }
-
-  componentDidMount() {
-    const collection = document.getElementsByClassName("relevant");
-    const recs = [];
-
-    function getOffset(el) {
-      const rect = el.getBoundingClientRect();
-      return {
-        left: rect.left + window.scrollX,
-        right: rect.right + window.scrollX,
-        top: rect.top + window.scrollY,
-        bottom: rect.bottom + window.scrollY
-      };
-    }
-
-    recs.push("left,right,top,bottom")
-    for (var el of collection) {
-      const rect = getOffset(el);
-      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
-      recs.push(csvString);
-    }
-
-    writeSingleArrayToFile(recs, "water_rail_relevant");
   }
 }
 
