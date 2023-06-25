@@ -13,7 +13,9 @@ var lastFixation = null;
 var readingScore = 0;
 var skimmingScore = 0;
 var scanningScore = 0;
-var inTask = false;
+var inControlTask = false;
+var inManualTask = false;
+var inAutoTask = false;
 var manualControl = false;
 var scrollLockout = 0;
 var lastScrollPosition = 0;
@@ -63,6 +65,8 @@ var manualTextSkimming;
 var manualTextScanning;
 
 var controlText;
+var controlTextSkimming;
+var controlTextScanning;
 
 var tutorialTextReading;
 var tutorialTextSkimming;
@@ -493,6 +497,14 @@ export default class App extends Component {
         this.setModeManually(SCANNING);
       }
     }
+
+    // Intended to be for debugging only. Participants aren't taught this key exists.
+    if(event.ctrlKey && event.key === "9") {
+      logData("Debug command - skipping task and moving to questions. This should never appear in a participant log", "WARNING", true);
+      this.endTaskIfOngoing("AutoQuestions", "AUTO");
+      this.endTaskIfOngoing("ManualQuestions", "MANUAL");
+      this.endTaskIfOngoing("ControlQuestions", "CONTROL");
+    }
   }
 
   setModeManually(newMode) {
@@ -747,7 +759,7 @@ export default class App extends Component {
     manualControl = false;
 
     return (<TutorialAuto 
-      onClick = {() => this.setPage("AutoIntro")}
+      onClick = {() => this.setPage("ControlInstructions")}
       currentMode = {currentMode}
     />);
   }
@@ -759,7 +771,7 @@ export default class App extends Component {
   }
 
   autoIntroOnClick() {
-    inTask = true;
+    inAutoTask = true;
     
     // Always start the task in reading mode with a decent lead, so the user gets at least a couple seconds of unformatted text.
     this.setState({currentMode: READING});
@@ -770,15 +782,28 @@ export default class App extends Component {
 
     const startTime = Date.now();
     endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
-    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "AutoQuestions");
+    setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "AutoQuestions", "AUTO");
     this.setPage("AutoTask");
   }
 
-  endTaskIfOngoing(nextPage) {
-    if (inTask) {
+  endTaskIfOngoing(nextPage, taskType) {
+    var needToEnd = false;
+    if (taskType == "AUTO" && inAutoTask) {
+      needToEnd = true;
+    }
+    else if (taskType == "MANUAL" && inManualTask) {
+      needToEnd = true;
+    }
+    else if (taskType == "CONTROL" && inControlTask) {
+      needToEnd = true;
+    }
+
+    if (needToEnd) {
       logData("5 minute timer has elapsed and task is ending", "EVENT", true);
       this.setPage(nextPage);
-      inTask = false;
+      inAutoTask = false;
+      inManualTask = false;
+      inControlTask = false;
     }
   }
 
@@ -790,18 +815,21 @@ export default class App extends Component {
   }
 
   autoTaskOnClick() {
-    inTask = false;
-    this.setPage("AutoQuestions");
+    if (confirm("Forfeit all remaining time on this task? Press Cancel to go back, or OK if you've read 100% of the text thoroughly.") == true) {
+      inAutoTask = false;
+      logData("Participant moved on from task early", "WARNING", true);
+      this.setPage("AutoQuestions");
+    }
   }
 
   createAutoQuestions() {
 
     const nextPageFunc = () => {
 
-      const answerOne = document.querySelector('input[name="chinese-1"]:checked')?.value;
-      const answerTwo = document.querySelector('input[name="chinese-2"]:checked')?.value;
-      const answerThree = document.querySelector('input[name="chinese-3"]:checked')?.value;
-      const answerFour = document.querySelector('input[name="chinese-4"]:checked')?.value;
+      const answerOne = document.querySelector('input[name="auto-1"]:checked')?.value;
+      const answerTwo = document.querySelector('input[name="auto-2"]:checked')?.value;
+      const answerThree = document.querySelector('input[name="auto-3"]:checked')?.value;
+      const answerFour = document.querySelector('input[name="auto-4"]:checked')?.value;
 
       logData("Automatic condition, question 1 user answered: " + answerOne, "QUESTION", true);
       logData("Automatic condition, question 2 user answered: " + answerTwo, "QUESTION", true);
@@ -831,12 +859,12 @@ export default class App extends Component {
 
   createManualInstructions(currentMode) {
     let onClickFunc = () => {
-      inTask = true;
+      inManualTask = true;
       this.setState({currentMode: READING});
     
       const startTime = Date.now();
       endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
-      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ManualQuestions");
+      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ManualQuestions", "MANUAL");
       this.setPage("ManualTask");
     }
 
@@ -849,8 +877,11 @@ export default class App extends Component {
     manualControl = true;
 
     let onClickFunc = () => {
-      inTask = false;
-      this.setPage("ManualQuestions");
+      if (confirm("Forfeit all remaining time on this task? Press Cancel to go back, or OK if you've read 100% of the text thoroughly.") == true) {
+        inManualTask = false;
+        logData("Participant moved on from task early", "WARNING", true);
+        this.setPage("ManualQuestions");
+      }
     }
 
     let readButtonFunc = () => {
@@ -912,11 +943,11 @@ export default class App extends Component {
 
   createControlInstructions() {
     let onClickFunc = () => {
-      inTask = true;
+      inControlTask = true;
     
       const startTime = Date.now();
       endTime = startTime + TASK_TIMER_IN_MS; // endTime variable is used to show the timer. The actual page switch is determined by the setTimeout call.
-      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ControlQuestions");
+      setTimeout(this.endTaskIfOngoing.bind(this), TASK_TIMER_IN_MS, "ControlQuestions", "CONTROL");
       this.setPage("ControlTask");
     }
 
@@ -928,8 +959,11 @@ export default class App extends Component {
   createControlTask() {
 
     let onClickFunc = () => {
-      inTask = false;
-      this.setPage("ControlQuestions");
+      if (confirm("Forfeit all remaining time on this task? Press Cancel to go back, or OK if you've read 100% of the text thoroughly.") == true) {
+        inControlTask = false;
+        logData("Participant moved on from task early", "WARNING", true);
+        this.setPage("ControlQuestions");
+      }
     }
 
     return (<ControlTask
@@ -950,7 +984,7 @@ export default class App extends Component {
       logData("Control condition, question 3 user answered: " + answerThree, "QUESTION", true);
       logData("Control condition, question 4 user answered: " + answerFour, "QUESTION", true);
 
-      this.setPage("EndSurvey");
+      this.setPage("AutoIntro");
     }
 
     return (<ControlQuestions
@@ -1031,7 +1065,7 @@ export class TutorialSkimming extends Component {
           <p className='text'>
             The first format is highlighting content words, like verbs, nouns, or adjectives. This has been scientifically shown to help with skimming
             a piece of text quickly. When you are ready, click "Next" to read a piece of text formatted in this way. There is no time limit and
-            you may take as long as you want, but we ask that you try to skim the text quickly.
+            you may take as long as you want, but <b>we ask that you try to skim the text quickly</b>.
           </p>
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -1075,7 +1109,7 @@ export class TutorialScanning extends Component {
           </p>
           <p className='text'>
             When you are ready, click "Next" to read a piece of text formatted in this way. There is no time limit and
-            you may take as long as you want, but we ask that you try to skim the text quickly.
+            you may take as long as you want, but <b>we ask that you try to skim the text quickly</b>.
           </p>
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -1115,7 +1149,7 @@ export class TutorialReading extends Component {
             text thoroughly. For example, this mode might be useful when you have found an important paragraph that you want to make sure you understand.
           </p>
           <p className='text'>
-            For this passage, we ask that you try to read the text thoroughly. Try not to skim the passage or skip anything.
+            For this passage, <b>we ask that you try to read the text thoroughly</b>. Try not to skim the passage or skip anything.
             When you're ready, click "Next" to read a piece of text formatted this way.
           </p>
         </div>
@@ -1219,20 +1253,22 @@ export class AutoIntro extends Component {
     return (
 
       <div className="App">
-        <h2>Task 1</h2>
+        <h2>Automatic Task</h2>
         <div className='text'>
           <p className='text'>
-            For this task, you will be roleplaying as a high schooler writing a report on the effects of climate change in the Middle East.
-            To do this, you will read a passage from Wikipedia about the settlement and development of Ancient Egypt.
+            For this task, you will be roleplaying a biologist investigating the breeding of the water rail, a specific species of bird.
+            To do this, you will read a passage from Wikipedia about the species.
             For your report, only some of the information in this passage will be useful:
-            you will need to find information on <b>weather and climate</b> in Ancient Egypt, including information about climate change and
-            climate events like floods or droughts. Any other information can be ignored.
+            you will need to find information on <b>breeding and nesting</b> in water rails. Any other information can be ignored.
             The text is quite long, so it is recommended to skim the text quickly to find the information you need.
+          </p>
+          <p>
+            This task will be using the Automatic Switching technique to format text.
           </p>
           <p className='text'>
             Once you begin, you will have 5 minutes to read. After these 5 minutes are up, we'll ask you some questions about the passage.
             You won't be able to go back to the passage once time is up, so do your best to read quickly and find the most relevant information.
-            These questions will ask only about weather and climate in Ancient Egypt, so be on the lookout for those events.
+            These questions will ask only about breeding and nesting, so be on the lookout for those details.
           </p>
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -1252,19 +1288,43 @@ export class AutoTask extends Component {
     return (
       <div className="App">
         <div className="sidebar">
-          <Timer text="Current task: Find info about <b>weather and climate</b>." />
+          <Timer text="Current task: Find info about <b>breeding and nesting</b>." />
         </div>
-        <h2>Ancient Egypt</h2>
+        <h2>Water Rail</h2>
         <div className="relative">
           <p className={'text overlapping-text ' + readingClassName} dangerouslySetInnerHTML={{__html: autoText}}></p>
           <p className={'text overlapping-text ' + skimmingClassName} dangerouslySetInnerHTML={{__html: autoTextSkimming}}></p>
           <p className={'text overlapping-text ' + scanningClassName} dangerouslySetInnerHTML={{__html: autoTextScanning}}></p>
         </div>
         <button className='button bottom-right' onClick={this.props.onClick} >
-          Move to Questions
+          Forfeit remaining time
         </button>
       </div>
     );
+  }
+
+  componentDidMount() {
+    const collection = document.getElementsByClassName("relevant");
+    const recs = [];
+
+    function getOffset(el) {
+      const rect = el.getBoundingClientRect();
+      return {
+        left: rect.left + window.scrollX,
+        right: rect.right + window.scrollX,
+        top: rect.top + window.scrollY,
+        bottom: rect.bottom + window.scrollY
+      };
+    }
+
+    recs.push("left,right,top,bottom")
+    for (var el of collection) {
+      const rect = getOffset(el);
+      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
+      recs.push(csvString);
+    }
+
+    writeSingleArrayToFile(recs, "brownhills_relevant");
   }
 }
 
@@ -1277,85 +1337,87 @@ export class AutoQuestions extends Component {
       <div className="App">
         <h2>Questions</h2>
         <p className='text'>
-          Time is up for the first task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          Time is up for the task. Before we move on, please answer the following comprehension questions about the passage you just read.
           <br />
           As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
           you don't wish to answer them or don't know the answer.
         </p>
-        1.  What describes the Egyptian climate in Predynastic and Early Dynastic times?
+
+        1.  What best describes the sites that the water rail breeds in?
         <div className="field">
-          <input type="radio" id="chinese-1a" name="chinese-1" value="A"/>
-          <label htmlFor="chinese-1a">The climate was much less arid than it is today, and covered in trees</label>
+          <input type="radio" id="auto-1a" name="auto-1" value="A"/>
+          <label htmlFor="auto-1a">Despite its huge range, the bird breeds only in temperate Western Europe.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-1b" name="chinese-1" value="B"/>
-          <label htmlFor="chinese-1b">The Nile River flooded more often, causing mass destruction in the small tribes of the area</label>
+          <input type="radio" id="auto-1b" name="auto-1" value="B"/>
+          <label htmlFor="auto-1b">In the branches of trees overlooking ponds and lakes.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-1c" name="chinese-1" value="C"/>
-          <label htmlFor="chinese-1c">The desert temperature was much cooler than in the Late Dynastic period</label>
+          <input type="radio" id="auto-1c" name="auto-1" value="C"/>
+          <label htmlFor="auto-1c">The water rail's huge breeding range means that a large variety of sites are used.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-1d" name="chinese-1" value="D"/>
-          <label htmlFor="chinese-1d">Droughts were common due to a mass aridification event</label>
+          <input type="radio" id="auto-1d" name="auto-1" value="D"/>
+          <label htmlFor="auto-1d">Reed beds or other marshy sites with tall, dense vegetation.</label>
         </div>
         <br />
 
-        2. What seasons did the ancient Egyptians recognize?
+        2. What noteworthy behavior is seen after the water rail breeds?
         <div className="field">
-          <input type="radio" id="chinese-2a" name="chinese-2" value="A"/>
-          <label htmlFor="chinese-2a">Flooding, planting, and harvesting</label>
+          <input type="radio" id="auto-2a" name="auto-2" value="A"/>
+          <label htmlFor="auto-2a">It abandons the weakest chicks when it moves nesting sites.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-2b" name="chinese-2" value="B"/>
-          <label htmlFor="chinese-2b">Spring, summer, fall, and winter</label>
+          <input type="radio" id="auto-2b" name="auto-2" value="B"/>
+          <label htmlFor="auto-2b">It has an extensive moult and is flightless for weeks afterwards.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-2c" name="chinese-2" value="C"/>
-          <label htmlFor="chinese-2c">Wet and dry</label>
+          <input type="radio" id="auto-2c" name="auto-2" value="C"/>
+          <label htmlFor="auto-2c">The females hide their eggs underwater to protect them from predators.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-2d" name="chinese-2" value="D"/>
-          <label htmlFor="chinese-2d">Inundation, Going Forth, and Deficiency</label>
-        </div>
-        <br />
-
-        3. What climate events were belived to contribute to the period of famine and strife known as the First Intermediate Period?
-        <div className="field">
-          <input type="radio" id="chinese-3a" name="chinese-3" value="A"/>
-          <label htmlFor="chinese-3a">Droughts</label>
-        </div>
-        <div className="field">
-          <input type="radio" id="chinese-3b" name="chinese-3" value="B"/>
-          <label htmlFor="chinese-3b">Sandstorms</label>
-        </div>
-        <div className="field">
-          <input type="radio" id="chinese-3c" name="chinese-3" value="C"/>
-          <label htmlFor="chinese-3c">Earthquakes</label>
-        </div>
-        <div className="field">
-          <input type="radio" id="chinese-3d" name="chinese-3" value="D"/>
-          <label htmlFor="chinese-3d">Flooding</label>
+          <input type="radio" id="auto-2d" name="auto-2" value="D"/>
+          <label htmlFor="auto-2d">The parents abandon their young after hatching from the egg.</label>
         </div>
         <br />
 
-        4.  The ruler Amenemhat III's reign was marked by severe Nile floods. What effect did these floods have on his reign?
+        3. What is the relationship between the male and female birds after breeding occurs?
         <div className="field">
-          <input type="radio" id="chinese-4a" name="chinese-4" value="A"/>
-          <label htmlFor="chinese-4a">They strained the economy and precipitated a slow decline</label>
+          <input type="radio" id="auto-3a" name="auto-3" value="A"/>
+          <label htmlFor="auto-3a">The male leaves the female to care for the eggs while he breeds with other females.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-4b" name="chinese-4" value="B"/>
-          <label htmlFor="chinese-4b">They caused heightened unrest which led to a mass rebellion</label>
+          <input type="radio" id="auto-3b" name="auto-3" value="B"/>
+          <label htmlFor="auto-3b">The females attack the males repeatedly as they approach the nest.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-4c" name="chinese-4" value="C"/>
-          <label htmlFor="chinese-4c">They destroyed farmers' crops and caused a severe famine</label>
+          <input type="radio" id="auto-3c" name="auto-3" value="C"/>
+          <label htmlFor="auto-3c">The male and female are monogamous and take turns acquiring food while the other incubates.</label>
         </div>
         <div className="field">
-          <input type="radio" id="chinese-4d" name="chinese-4" value="D"/>
-          <label htmlFor="chinese-4d">They were seen as a sign of the god's disfavor, which forced Amenemhat III into exile</label>
+          <input type="radio" id="auto-3d" name="auto-3" value="D"/>
+          <label htmlFor="auto-3d">The male incubates the eggs while the female brings food to the nest.</label>
         </div>
+        <br />
+
+        4.  What does the water rail's breeding range mean for its conservation status?
+        <div className="field">
+          <input type="radio" id="auto-4a" name="auto-4" value="A"/>
+          <label htmlFor="auto-4a">The water rail's huge range means that it is classified as Least Concern.</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="auto-4b" name="auto-4" value="B"/>
+          <label htmlFor="auto-4b">The water rail's range spans across Western Europe but its rapid shrinking means it is a Vulnerable species.</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="auto-4c" name="auto-4" value="C"/>
+          <label htmlFor="auto-4c">The water rail is currently classified as Least Concern, but the extinction of vulnerable island populations mean it may become vulnerable.</label>
+        </div>
+        <div className="field">
+          <input type="radio" id="auto-4d" name="auto-4" value="D"/>
+          <label htmlFor="auto-4d">The water rail is classified as a widespread invasive species across Europe and Asia.</label>
+        </div>
+
         <br />
         <button className='button' onClick={this.props.onClick} >
           Submit
@@ -1385,22 +1447,22 @@ export class ManualInstructions extends Component {
   render() {
     return (
       <div className="App">
-        <h2>Task 2</h2>
+        <h2>Manual Task</h2>
         <div className='text'>
           <p className='text'>
-            Thank you for your participation in the first task. Please let the researcher know if you would like a break, or if you have any questions.
-          </p>
-          <p className='text'>
-            For this task, you will be roleplaying as a high schooler writing a report on historical events in 14th century China.
-            To do this, you will read a passage from a Chinese history textbook about the events of the 1200s and 1300s.
+            For this task, you will be roleplaying as a high schooler writing a report on the history of mining in your hometown, a town in England named Brownhills.
+            To do this, you will read an article from Wikipedia about Brownhills.
             For your report, only some of the information in this passage will be useful:
-            you will need to find information on <b>events in the 1300s</b>. Events that occured in the 1200s can be ignored.
+            you will need to find information on <b>mining</b>. Information related to any other aspects can be ignored.
             The text is quite long, so it is recommended to skim the text quickly to find the information you need.
+          </p>
+          <p>
+            This task will be using the Manual Switching technique to format text.
           </p>
           <p className='text'>
             Once you begin, you will have 5 minutes to read. After these 5 minutes are up, we'll ask you some questions about the passage.
             You won't be able to go back to the passage once time is up, so do your best to read quickly and find the most relevant information.
-            These questions will ask only about events in the 1300s, so be on the lookout for those events.
+            These questions will ask only about mining, so be on the lookout for those details.
           </p>
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -1429,7 +1491,7 @@ export class ManualTask extends Component {
     return (
       <div className="App">
         <div className="sidebar">
-          <Timer text="Current task: Find info about <b>events in the 1300s</b>." />
+          <Timer text="Current task: Find info about <b>mining</b>." />
         </div>
 
         <div className="sidebar-buttons">
@@ -1444,13 +1506,37 @@ export class ManualTask extends Component {
           </button>
         </div>
 
-        <h2>Task 2</h2>
+        <h2>Brownhills</h2>
         <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
         <button className='button bottom-right' onClick={this.props.onClick} >
-          Move to Questions
+          Forfeit remaining time
         </button>
       </div>
     );
+  }
+
+  componentDidMount() {
+    const collection = document.getElementsByClassName("relevant");
+    const recs = [];
+
+    function getOffset(el) {
+      const rect = el.getBoundingClientRect();
+      return {
+        left: rect.left + window.scrollX,
+        right: rect.right + window.scrollX,
+        top: rect.top + window.scrollY,
+        bottom: rect.bottom + window.scrollY
+      };
+    }
+
+    recs.push("left,right,top,bottom")
+    for (var el of collection) {
+      const rect = getOffset(el);
+      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
+      recs.push(csvString);
+    }
+
+    writeSingleArrayToFile(recs, "robbery_relevant");
   }
 }
 
@@ -1460,86 +1546,87 @@ export class ManualQuestions extends Component {
       <div className="App">
         <h2>Questions</h2>
         <p className='text'>
-          Time is up for the second task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          Time is up for the task. Before we move on, please answer the following comprehension questions about the passage you just read.
           <br />
           As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
           you don't wish to answer them or don't know the answer.
         </p>
-        1.  What actions did the popular risings of 1325 take?
+        
+        1.  What best describes the early history of mining in the town?
         <div className="field">
           <input type="radio" id="manual-1a" name="manual-1" value="A"/>
-          <label htmlFor="manual-1a">Attacking Mongols as alien invaders</label>
+          <label htmlFor="manual-1a">The mines developed after mineral riches were discovered under the center of the town.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-1b" name="manual-1" value="B"/>
-          <label htmlFor="manual-1b">Protesting abuse from the newly appointed Mongol bureaucrats</label>
+          <label htmlFor="manual-1b">Mining had begun to develop as early as the 1600s, but expanded enormously after the introduction of the railway.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-1c" name="manual-1" value="C"/>
-          <label htmlFor="manual-1c">Attacking the rich in general and distributing their possessions</label>
+          <label htmlFor="manual-1c">The mining operation began once the railway made it profitable to transport materials long distances.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-1d" name="manual-1" value="D"/>
-          <label htmlFor="manual-1d">Calling for a permanent state of Mongol rule over China</label>
+          <label htmlFor="manual-1d">Mining in the area began in earnest once the local coal mines were found to also contain gold.</label>
         </div>
         <br />
 
-        2. What characterized the soldiers of the Mongol military after 1320?
+        2. What describes the role of mining in the economy in the 1840s?
         <div className="field">
           <input type="radio" id="manual-2a" name="manual-2" value="A"/>
-          <label htmlFor="manual-2a">Mongol soldiers were more effective than Chinese soldiers due to advanced technology</label>
+          <label htmlFor="manual-2a">The closure of the mines had caused a severe economic decline.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-2b" name="manual-2" value="B"/>
-          <label htmlFor="manual-2b">They were aggressive and commonly led revolts</label>
+          <label htmlFor="manual-2b">The mining operation had yet to begin, with the economy mostly consisting of farming and milling.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-2c" name="manual-2" value="C"/>
-          <label htmlFor="manual-2c">The Mongol military mostly consisted of conscripted Chinese soldiers</label>
+          <label htmlFor="manual-2c">The vast majority of the industry was centered around the mining pits of Coppice Side.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-2d" name="manual-2" value="D"/>
-          <label htmlFor="manual-2d">Most soldiers had never seen war and did not know how to use their weapons</label>
+          <label htmlFor="manual-2d">The mines were temporarily closed by the Crown after widespread mining accidents.</label>
         </div>
         <br />
 
-        3.  What occurred in response to the 1351 bursting of the dykes along the Yellow River?
+        3.  What effects have the mining operation had on the natural environments of the town?
         <div className="field">
           <input type="radio" id="manual-3a" name="manual-3" value="A"/>
-          <label htmlFor="manual-3a">The government summoned forced laborers to reconstruct the dykes</label>
+          <label htmlFor="manual-3a">The mines have caused numerous ecological disasters in the surrounding healthlands.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-3b" name="manual-3" value="B"/>
-          <label htmlFor="manual-3b">Rebel armies repaired the dykes against the orders of the government</label>
+          <label htmlFor="manual-3b">The mining caused the forest to be cut down and replaced with grassland.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-3c" name="manual-3" value="C"/>
-          <label htmlFor="manual-3c">The government’s quick response led to improved relations with the Chinese</label>
+          <label htmlFor="manual-3c">The mining predominantly avoided ecological impacts due to the use of underground mining techniques.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-3d" name="manual-3" value="D"/>
-          <label htmlFor="manual-3d">The region of Honan was mostly destroyed by the resulting floods</label>
+          <label htmlFor="manual-3d">The local ecology was affected by the mines, but have now returned to a more natural state.</label>
         </div>
         <br />
 
-        4.  What relationship did the rebel Chu Yüan-chang have with the rich gentry?
+        4.  What does the name of the large sculpture of a coal miner refer to?
         <div className="field">
           <input type="radio" id="manual-4a" name="manual-4" value="A"/>
-          <label htmlFor="manual-4a">He became weak and ineffective as a leader due to their bribes</label>
+          <label htmlFor="manual-4a">It was named after a miner who died in the coal pits.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-4b" name="manual-4" value="B"/>
-          <label htmlFor="manual-4b">He slaughtered them indiscriminately while capturing cities</label>
+          <label htmlFor="manual-4b">It was named after a local businessman who financed and supported the construction of the mines.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-4c" name="manual-4" value="C"/>
-          <label htmlFor="manual-4c">He allowed them to join him en masse</label>
+          <label htmlFor="manual-4c">It was named after the spirit of comradery and collective goodwill the miners had.</label>
         </div>
         <div className="field">
           <input type="radio" id="manual-4d" name="manual-4" value="D"/>
-          <label htmlFor="manual-4d">He plundered their material wealth but allowed them to live in exile</label>
+          <label htmlFor="manual-4d">It was named after a legendary miner who vaulted a turnpike on horseback to avoid paying the toll.</label>
         </div>
-        <br />
+
         <button className='button' onClick={this.props.onClick} >
           Submit
         </button>
@@ -1568,13 +1655,23 @@ export class ControlInstructions extends Component {
   render() {
     return (
       <div className="App">
-        <h2>Task 3</h2>
+        <h2>Control Task</h2>
         <div className='text'>
           <p className='text'>
-            Thank you for your participation. Please let the researcher know if you would like a break, or if you have any questions.
+            For this task, you will be roleplaying as a biographer interested in the life of a specific historical person.
+            Namely, you are interested in a person named James Burgess who was involved in a gold robbery.
+            To do this, you will read a passage describing the events and aftermath of the gold robbery.
+            For your report, only some of the information in this passage will be useful:
+            you will need to find information on <b>James Burgess</b>. The details of any other person can be ignored.
+            The text is quite long, so it is recommended to skim the text quickly to find the information you need.
+          </p>
+          <p>
+            This task will not format the text in any special way.
           </p>
           <p className='text'>
-            TODO: control condition instructions.
+            Once you begin, you will have 5 minutes to read. After these 5 minutes are up, we'll ask you some questions about the passage.
+            You won't be able to go back to the passage once time is up, so do your best to read quickly and find the most relevant information.
+            These questions will ask only about James Burgess, so be on the lookout for those details.
           </p>
         </div>
         <button className='button' onClick={this.props.onClick} >
@@ -1588,22 +1685,45 @@ export class ControlInstructions extends Component {
 export class ControlTask extends Component {
   render() {
 
-    controlText = "TODO control task text";
     var htmlText = controlText;
 
     return (
       <div className="App">
         <div className="sidebar">
-          <Timer text="Current task: Find info about <b>TODO</b>." />
+          <Timer text="Current task: Find info about <b>James Burgess</b>." />
         </div>
 
-        <h2>Task 3</h2>
+        <h2>The Great Gold Robbery</h2>
         <p className='text' dangerouslySetInnerHTML={{__html: htmlText}}></p>
         <button className='button bottom-right' onClick={this.props.onClick} >
-          Move to Questions
+          Forfeit remaining time
         </button>
       </div>
     );
+  }
+
+  componentDidMount() {
+    const collection = document.getElementsByClassName("relevant");
+    const recs = [];
+
+    function getOffset(el) {
+      const rect = el.getBoundingClientRect();
+      return {
+        left: rect.left + window.scrollX,
+        right: rect.right + window.scrollX,
+        top: rect.top + window.scrollY,
+        bottom: rect.bottom + window.scrollY
+      };
+    }
+
+    recs.push("left,right,top,bottom")
+    for (var el of collection) {
+      const rect = getOffset(el);
+      const csvString = rect.left + "," + rect.right + "," + rect.top + "," + rect.bottom
+      recs.push(csvString);
+    }
+
+    writeSingleArrayToFile(recs, "water_rail_relevant");
   }
 }
 
@@ -1613,85 +1733,87 @@ export class ControlQuestions extends Component {
       <div className="App">
         <h2>Questions</h2>
         <p className='text'>
-          Time is up for the third task. Before we move on, please answer the following comprehension questions about the passage you just read.
+          Time is up for the task. Before we move on, please answer the following comprehension questions about the passage you just read.
           <br />
           As a reminder, your performance is not being evaluated. It's okay if you don't know the answer to a question. You may leave questions blank if
           you don't wish to answer them or don't know the answer.
         </p>
-        1.  Question1
+
+        1. What best describes Burgess's prior history at the South Eastern Railway company?
         <div className="field">
           <input type="radio" id="control-1a" name="control-1" value="A"/>
-          <label htmlFor="control-1a">Answer</label>
+          <label htmlFor="control-1a">He had a history of being reprimanded for gambling and drinking on the job.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-1b" name="control-1" value="B"/>
-          <label htmlFor="control-1b">Answer</label>
+          <label htmlFor="control-1b">He was regarded with suspicion due to his short tenure.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-1c" name="control-1" value="C"/>
-          <label htmlFor="control-1c">Answer</label>
+          <label htmlFor="control-1c">He was a respectable man who had worked as a guard for over a decade.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-1d" name="control-1" value="D"/>
-          <label htmlFor="control-1d">Answer</label>
+          <label htmlFor="control-1d">His employment with the railway traffic department meant that he had previously interacted with the company.</label>
         </div>
         <br />
 
-        2. Question2
+        2. What was Burgess's role in the robbery?
         <div className="field">
           <input type="radio" id="control-2a" name="control-2" value="A"/>
-          <label htmlFor="control-2a">Answer</label>
+          <label htmlFor="control-2a">He would deliver the stolen gold bars to a safe location once the train had arrived.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-2b" name="control-2" value="B"/>
-          <label htmlFor="control-2b">Answer</label>
+          <label htmlFor="control-2b">He would notify the thieves of a shipment being made and let them into the guard's van.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-2c" name="control-2" value="C"/>
-          <label htmlFor="control-2c">Answer</label>
+          <label htmlFor="control-2c">He would use wedges to break the iron rivets on the boxes of bullions once another thief had picked the safe lock.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-2d" name="control-2" value="D"/>
-          <label htmlFor="control-2d">Answer</label>
+          <label htmlFor="control-2d">He would hide the evidence of the thieves' activities after the gold had been removed from the train.</label>
         </div>
         <br />
 
-        3.  Question3
+        3.  What actions did Burgess take with his earnings from the robbery?
         <div className="field">
           <input type="radio" id="control-3a" name="control-3" value="A"/>
-          <label htmlFor="control-3a">Answer</label>
+          <label htmlFor="control-3a">He invested his earnings in bonds and shares.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-3b" name="control-3" value="B"/>
-          <label htmlFor="control-3b">Answer</label>
+          <label htmlFor="control-3b">He quickly spent his entire earnings on gambling and alcohol.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-3c" name="control-3" value="C"/>
-          <label htmlFor="control-3c">Answer</label>
+          <label htmlFor="control-3c">He sent the money to his family in France.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-3d" name="control-3" value="D"/>
-          <label htmlFor="control-3d">Answer</label>
+          <label htmlFor="control-3d">He opened a home goods store with stock financed by his earnings.</label>
         </div>
         <br />
 
-        4.  Question4
+        4.  What was Burgess's fate in the legal process following the robbery?
         <div className="field">
           <input type="radio" id="control-4a" name="control-4" value="A"/>
-          <label htmlFor="control-4a">Answer</label>
+          <label htmlFor="control-4a">He was pardoned due to his cooperation with authorities.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-4b" name="control-4" value="B"/>
-          <label htmlFor="control-4b">Answer</label>
+          <label htmlFor="control-4b">He was sent to Western Australia on a convict ship.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-4c" name="control-4" value="C"/>
-          <label htmlFor="control-4c">Answer</label>
+          <label htmlFor="control-4c">He was sentenced to hard labor but allowed to remain in England.</label>
         </div>
         <div className="field">
           <input type="radio" id="control-4d" name="control-4" value="D"/>
-          <label htmlFor="control-4d">Answer</label>
+          <label htmlFor="control-4d">He was sentenced to life in prison and remained there until his death.</label>
         </div>
+        
         <br />
         <button className='button' onClick={this.props.onClick} >
           Submit
@@ -1746,7 +1868,7 @@ export class EndSurvey extends Component {
         </div>
         <br />
 
-        Do you have any other comments on your preference of technique?
+        Do you have any other comments on your preference of technique? (If you can't type in this text box, please press Command+Tab twice, then try again.)
         <textarea id="survey-text" rows="10" cols="30">
         </textarea> 
         <br />
@@ -1809,6 +1931,9 @@ export function Timer(props) {
 export function SusScale(props) {
   return (
     <div>
+      <p className='text'>
+        Thank you for your participation in the task. Please let the researcher know if you would like a break, or if you have any questions.
+      </p>
       <p className='text'>
         We would like to ask you some questions about your experience in the task you just completed. When answering these questions,
         please consider only your experience in the 5-minute task you just completed.
@@ -1988,7 +2113,7 @@ export function writeSingleArrayToFile(array, name) {
 
 export function loadTextFiles() {
   const fs = require("fs");
-    const autoReadingPath = './nlp_files/egyptian_climate.txt'; // Put this filename in a variable so we can enforce a log of the correct name
+    const autoReadingPath = './nlp_files/water_rail.txt'; // Put this filename in a variable so we can enforce a log of the correct name
 
     fs.readFile(autoReadingPath, {encoding: 'utf8'}, function (err, data) {
       if (err) {
@@ -1997,11 +2122,11 @@ export function loadTextFiles() {
       else {
         autoText = data.toString();
         autoText = autoText.replace(/\n/g, "<br />");
-        logData("Text for auto mode: " + autoReadingPath, "FILENAME");
+        logData("Text for auto mode: " + autoReadingPath, "FILENAME", true);
       }
     });
 
-    fs.readFile('./nlp_files/edited_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile('./nlp_files/edited_water_rail.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
@@ -2011,7 +2136,7 @@ export function loadTextFiles() {
       }
     });
 
-    fs.readFile('./nlp_files/fadeout_egyptian_climate.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile('./nlp_files/fadeout_water_rail.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
@@ -2021,7 +2146,7 @@ export function loadTextFiles() {
       }
     });
 
-    const manualReadingPath = './nlp_files/chinese_history.txt';
+    const manualReadingPath = './nlp_files/brownhills.txt';
 
     fs.readFile(manualReadingPath, {encoding: 'utf8'}, function (err, data) {
       if (err) {
@@ -2030,11 +2155,11 @@ export function loadTextFiles() {
       else {
         manualText = data.toString();
         manualText = manualText.replace(/\n/g, "<br />");
-        logData("Text for manual mode: " + manualReadingPath, "FILENAME");
+        logData("Text for manual mode: " + manualReadingPath, "FILENAME", true);
       }
     });
 
-    fs.readFile('./nlp_files/edited_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile('./nlp_files/edited_brownhills.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
@@ -2044,13 +2169,46 @@ export function loadTextFiles() {
       }
     });
 
-    fs.readFile('./nlp_files/fadeout_chinese_history.txt', {encoding: 'utf8'}, function (err, data) {
+    fs.readFile('./nlp_files/fadeout_brownhills.txt', {encoding: 'utf8'}, function (err, data) {
       if (err) {
         return console.error(err);
       }
       else {
         manualTextScanning = data.toString();
         manualTextScanning = manualTextScanning.replace(/\n/g, "<br />");
+      }
+    });
+
+    const controlReadingPath = './nlp_files/gold_robbery.txt';
+
+    fs.readFile(controlReadingPath, {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        controlText = data.toString();
+        controlText = controlText.replace(/\n/g, "<br />");
+        logData("Text for control mode: " + controlReadingPath, "FILENAME", true);
+      }
+    });
+
+    fs.readFile('./nlp_files/edited_gold_robbery.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        controlTextSkimming = data.toString();
+        controlTextSkimming = controlTextSkimming.replace(/\n/g, "<br />");
+      }
+    });
+
+    fs.readFile('./nlp_files/fadeout_gold_robbery.txt', {encoding: 'utf8'}, function (err, data) {
+      if (err) {
+        return console.error(err);
+      }
+      else {
+        controlTextScanning = data.toString();
+        controlTextScanning = controlTextScanning.replace(/\n/g, "<br />");
       }
     });
 
